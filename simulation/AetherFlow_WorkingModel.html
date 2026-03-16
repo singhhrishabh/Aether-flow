@@ -1,0 +1,616 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@400;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#050d12;color:#c8eef8;font-family:'Exo 2',sans-serif;}
+.wrap{padding:12px;max-width:860px;margin:0 auto;}
+
+/* header */
+.hdr{display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid #1a3a4a;margin-bottom:12px;}
+.logo{font-family:'Share Tech Mono',monospace;font-size:17px;color:#00e5c8;letter-spacing:3px;}
+.logo small{display:block;font-size:10px;color:#5a8a9a;letter-spacing:4px;margin-top:2px;}
+.pill{padding:3px 10px;border-radius:20px;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;}
+
+/* alert */
+.alert{border-radius:7px;padding:9px 14px;margin-bottom:10px;font-family:'Share Tech Mono',monospace;font-size:11px;border:1px solid;}
+
+/* grid layouts */
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+
+/* card */
+.card{background:#0a1a22;border:1px solid #1a3a4a;border-radius:8px;padding:12px;position:relative;}
+.card-top{position:absolute;top:0;left:10%;right:10%;height:2px;border-radius:0 0 2px 2px;}
+.ctitle{font-family:'Share Tech Mono',monospace;font-size:9px;color:#5a8a9a;letter-spacing:3px;margin-bottom:8px;text-transform:uppercase;}
+.big{font-family:'Share Tech Mono',monospace;font-size:34px;line-height:1;}
+.unit{font-size:12px;color:#5a8a9a;}
+.small{font-family:'Share Tech Mono',monospace;font-size:10px;color:#5a8a9a;margin-top:4px;}
+
+/* slider */
+.srow{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.slbl{font-family:'Share Tech Mono',monospace;font-size:9px;color:#5a8a9a;min-width:56px;}
+input[type=range]{flex:1;accent-color:#00e5c8;cursor:pointer;height:4px;}
+.sval{font-family:'Share Tech Mono',monospace;font-size:11px;color:#00e5c8;min-width:32px;text-align:right;}
+
+/* canvases - explicit sizing in JS */
+canvas{display:block;border-radius:4px;}
+
+/* peltier */
+.pg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;}
+.pt{background:#0d2230;border:1px solid #1a3a4a;border-radius:6px;padding:8px;text-align:center;}
+.pt.active{border-color:#00e5c8;}
+.pt.max{border-color:#22aaff;animation:glow .6s infinite alternate;}
+@keyframes glow{from{box-shadow:none}to{box-shadow:0 0 8px #22aaff44;}}
+.pnum{font-family:'Share Tech Mono',monospace;font-size:17px;}
+.pbar{height:4px;background:#050d12;border-radius:2px;margin-top:5px;overflow:hidden;}
+.pbf{height:100%;border-radius:2px;transition:width .35s,background .35s;}
+
+/* ina */
+.ig{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.ib{background:#0d2230;border:1px solid #1a3a4a;border-radius:6px;padding:8px;transition:border-color .3s;}
+.ib.hot{border-color:#ff4060;}
+.ilbl{font-family:'Share Tech Mono',monospace;font-size:9px;color:#5a8a9a;margin-bottom:3px;}
+.ival{font-family:'Share Tech Mono',monospace;font-size:15px;}
+.ibar{height:3px;background:#050d12;border-radius:2px;margin-top:4px;overflow:hidden;}
+.ibf{height:100%;border-radius:2px;transition:width .4s,background .4s;}
+
+/* log */
+.log{font-family:'Share Tech Mono',monospace;font-size:10px;line-height:1.9;overflow:hidden;max-height:120px;}
+.le{display:flex;gap:6px;}
+.lts{color:#1a3a4a;min-width:40px;}
+.lok{color:#00e5c8;}.lwarn{color:#ffaa00;}.lcrit{color:#ff4060;}.lprd{color:#22aaff;}
+
+/* pred boxes */
+.pb{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:8px;}
+.pbox{background:#0d2230;border:1px solid #1a3a4a;border-radius:5px;padding:7px;text-align:center;transition:border-color .3s;}
+.pbox.hot{border-color:#ff4060;}.pbox.warm{border-color:#ffaa00;}.pbox.cool{border-color:#22aaff;}
+.pbt{font-family:'Share Tech Mono',monospace;font-size:9px;color:#5a8a9a;margin-bottom:3px;}
+.pbv{font-family:'Share Tech Mono',monospace;font-size:13px;font-weight:600;}
+
+/* buttons */
+.btns{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+.btn{background:#0d2230;border:1px solid #1a3a4a;color:#c8eef8;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:1px;padding:7px 11px;border-radius:4px;cursor:pointer;transition:all .2s;}
+.btn:hover{border-color:#00e5c8;color:#00e5c8;}
+.btn.on{background:#00e5c8;color:#050d12;border-color:#00e5c8;}
+.btn.rd{border-color:#ff4060;color:#ff4060;}
+.btn.rd:hover,.btn.rd.on{background:#ff4060;color:#050d12;}
+.btn.am{border-color:#ffaa00;color:#ffaa00;}
+.btn.am:hover{background:#ffaa00;color:#050d12;}
+.hint{font-family:'Share Tech Mono',monospace;font-size:10px;color:#5a8a9a;margin-top:8px;padding:8px;background:#0d2230;border-radius:5px;border:1px solid #1a3a4a;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="logo">AETHER-FLOW <small>PREDICTIVE AI COOLING · v3.0</small></div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <canvas id="dotCanvas" width="10" height="10" style="border-radius:50%;"></canvas>
+    <span id="sTxt" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:#00e5c8;">NOMINAL</span>
+    <div class="pill" id="mBadge" style="background:#00e5c815;border:1px solid #00e5c8;color:#00e5c8;">AI-ACTIVE</div>
+  </div>
+</div>
+
+<!-- ALERT -->
+<div class="alert" id="alert" style="background:#00e5c810;border-color:#00e5c840;color:#00e5c8;">
+  ❄ AI monitoring · no heat threat · system holding setpoint
+</div>
+
+<!-- ROW 1: 3 stat cards -->
+<div class="g3">
+  <div class="card">
+    <div class="card-top" style="background:#00e5c8;"></div>
+    <div class="ctitle">ACTUAL TEMP</div>
+    <div class="big" id="tNow" style="color:#00e5c8;">--<span class="unit">°C</span></div>
+    <div class="small" id="tTrend">→ stable</div>
+  </div>
+  <div class="card">
+    <div class="card-top" style="background:#22aaff;"></div>
+    <div class="ctitle">AI PREDICTED · +30s</div>
+    <div class="big" id="tPred" style="color:#22aaff;">--<span class="unit">°C</span></div>
+    <div class="small" id="pStat" style="color:#00e5c8;">Calculating...</div>
+  </div>
+  <div class="card">
+    <div class="card-top" style="background:#ffaa00;"></div>
+    <div class="ctitle">SETPOINT</div>
+    <div class="big" style="color:#ffaa00;"><span id="spV">40</span><span class="unit">°C</span></div>
+    <div class="srow">
+      <span class="slbl">TARGET</span>
+      <input type="range" min="20" max="75" value="40" oninput="setSP(this.value)">
+      <span class="sval" id="spL">40</span>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN GRAPH -->
+<div class="card" style="margin-bottom:10px;">
+  <div class="card-top" style="background:linear-gradient(90deg,#00e5c8,#22aaff);"></div>
+  <div class="ctitle">PREDICTION TIMELINE · TEAL=ACTUAL · BLUE DASHED=PREDICTED · WHITE=SETPOINT</div>
+  <canvas id="graphCanvas" style="width:100%;"></canvas>
+  <div style="display:flex;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:9px;color:#5a8a9a;margin-top:5px;">
+    <span style="color:#00e5c8;">━ actual temp</span>
+    <span>┆ NOW</span>
+    <span style="color:#22aaff;">╌ ai predicted</span>
+    <span style="color:#ffffff55;">─ setpoint</span>
+    <span style="color:#00e5c855;">▬ pwm</span>
+  </div>
+  <!-- prediction value boxes -->
+  <div class="pb" id="predBoxes"></div>
+</div>
+
+<!-- ROW 2: INA226 + Thermal camera -->
+<div class="g2">
+  <div class="card">
+    <div class="card-top" style="background:#ffaa00;"></div>
+    <div class="ctitle">INA226 POWER · AI READS THIS FIRST</div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:#5a8a9a;margin-bottom:7px;">Power rises → AI predicts heat → cools BEFORE temp rises</div>
+    <div class="ig" id="inaGrid"></div>
+  </div>
+  <div class="card">
+    <div class="card-top" style="background:#00e5c8;"></div>
+    <div class="ctitle">MLX90640 · 8×4 THERMAL MAP</div>
+    <canvas id="thermalCanvas" style="width:100%;margin-top:4px;border-radius:4px;"></canvas>
+    <div style="display:flex;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:9px;margin-top:4px;">
+      <span style="color:#3b82f6;">COLD</span>
+      <span style="color:#5a8a9a;">LIVE HEATMAP</span>
+      <span style="color:#ff4060;">HOT</span>
+    </div>
+  </div>
+</div>
+
+<!-- ROW 3: Peltiers + Log -->
+<div class="g2">
+  <div class="card">
+    <div class="card-top" style="background:#00e5c8;"></div>
+    <div class="ctitle">PELTIER TEC × 4 <span id="pelStat" style="color:#5a8a9a;margin-left:6px;">STANDBY</span></div>
+    <div class="small" id="pelReason">Waiting for AI signal...</div>
+    <div class="pg" id="pelGrid"></div>
+    <div style="margin-top:8px;">
+      <div style="display:flex;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:9px;color:#5a8a9a;margin-bottom:3px;">
+        <span>TOTAL PWM</span><span id="avgPwm" style="color:#00e5c8;">0 / 255</span>
+      </div>
+      <div style="background:#0d2230;border-radius:2px;height:5px;overflow:hidden;">
+        <div id="pwmTotalBar" style="height:100%;background:linear-gradient(90deg,#00b89a,#00e5c8);width:0%;transition:width .4s;border-radius:2px;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-top" style="background:#ffaa00;"></div>
+    <div class="ctitle">SYSTEM LOG</div>
+    <div class="log" id="sLog"></div>
+  </div>
+</div>
+
+<!-- CONTROLS -->
+<div class="btns">
+  <button class="btn on" id="bAI" onclick="setMode('ai')">AI PREDICT</button>
+  <button class="btn" id="bPID" onclick="setMode('pid')">PID ONLY</button>
+  <button class="btn rd" onclick="setMode('stop')">STOP</button>
+  <button class="btn am" onclick="sched(5,4)">5W IN 4s</button>
+  <button class="btn am" onclick="sched(15,6)">15W IN 6s</button>
+  <button class="btn am" onclick="sched(30,8)">30W IN 8s</button>
+  <button class="btn" onclick="reset()">RESET</button>
+</div>
+<div class="hint">
+  ★ HOW TO SEE AI PREDICTION: Click any SCHEDULE button → watch the BLUE DASHED line rise on the right side of the graph BEFORE temperature rises → Peltiers ramp up → actual temp barely moves.<br>
+  Switch to PID ONLY and repeat → temp spikes much higher because there is no prediction.
+</div>
+
+</div>
+<script>
+// ══════════════════════
+// STATE
+// ══════════════════════
+let mode='ai', T=32, SP=40;
+let I=0, prevE=0, PWM=0;
+let heat=0, schedW=0, schedT=0;
+let tick=0;
+let Th=[]; // temp history
+let Ph=[]; // power history
+let logs=[];
+let ina=[2.1,1.8,2.4,1.6];
+let pelV=[0,0,0,0];
+let preCool=false;
+
+// ══════════════════════
+// AI ENGINE
+// ══════════════════════
+function ai(){
+  if(Ph.length<4) return {p30:SP,preCool:false,prePWM:0,conf:0};
+  const ps=Ph.slice(-8);
+  const pSlope=(ps[ps.length-1]-ps[0])/ps.length;
+  const ts=Th.slice(-8);
+  const tSlope=ts.length>3?(ts[ts.length-1]-ts[0])/ts.length:0;
+  const hSig=Math.max(0,pSlope)*4.2;
+  const mom=Math.max(0,tSlope)*2.8;
+  const proj=T+(hSig+mom)*7;
+  const p30=Math.max(16,Math.min(88,proj+(SP-proj)*0.2));
+  const conf=Math.min(100,Math.abs(pSlope)*200+Math.abs(tSlope)*90);
+  const excess=p30-SP;
+  const pc=mode==='ai'&&excess>1.5;
+  const prePWM=pc?Math.min(255,Math.max(0,5*excess*1.8+pSlope*140+mom*90)):0;
+  return {p30,preCool:pc,prePWM,conf,pSlope,tSlope};
+}
+
+// ══════════════════════
+// PID
+// ══════════════════════
+function pid(){
+  const e=SP-T,dt=0.5;
+  I=Math.max(-80,Math.min(80,I+e*dt));
+  const d=(e-prevE)/dt; prevE=e;
+  return Math.max(0,Math.min(255,3.8*e+0.1*I+2.0*d));
+}
+
+// ══════════════════════
+// DRAW GRAPH — completely rewritten
+// ══════════════════════
+function drawGraph(){
+  const c=document.getElementById('graphCanvas');
+  const W=c.parentElement.clientWidth-24;
+  if(W<50)return;
+  c.width=W; c.height=180;
+  const ctx=c.getContext('2d');
+  ctx.clearRect(0,0,W,180);
+
+  const MN=14, MX=82, RG=MX-MN;
+  const HS=48, PS=12, TOT=HS+PS;
+  const NX=Math.round(W*HS/TOT);
+
+  // bg zones
+  ctx.fillStyle='rgba(0,0,0,.25)'; ctx.fillRect(0,0,NX,180);
+  ctx.fillStyle='rgba(34,170,255,.04)'; ctx.fillRect(NX,0,W-NX,180);
+
+  // grid horizontal
+  ctx.strokeStyle='#1a3a4a'; ctx.lineWidth=1;
+  [20,30,40,50,60,70].forEach(t=>{
+    const y=180-(t-MN)/RG*180;
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+    ctx.fillStyle='#2a4a5a'; ctx.font='9px Share Tech Mono';
+    ctx.fillText(t+'°',3,y-2);
+  });
+
+  // setpoint line
+  const SPY=180-(SP-MN)/RG*180;
+  ctx.strokeStyle='rgba(255,255,255,.2)'; ctx.lineWidth=1.5;
+  ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(0,SPY); ctx.lineTo(W,SPY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='rgba(255,255,255,.45)'; ctx.font='bold 9px Share Tech Mono';
+  ctx.fillText('SP '+SP+'°C',NX+4,SPY-4);
+
+  // NOW line
+  ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.lineWidth=1.5;
+  ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(NX,0); ctx.lineTo(NX,180); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='rgba(255,255,255,.35)'; ctx.font='9px Share Tech Mono';
+  ctx.fillText('NOW',NX+3,11);
+
+  // HISTORY line + fill
+  const H=Th.slice(-HS);
+  if(H.length>=2){
+    // fill
+    const hg=ctx.createLinearGradient(0,0,0,180);
+    hg.addColorStop(0,'rgba(0,229,200,.18)');
+    hg.addColorStop(1,'rgba(0,229,200,0)');
+    ctx.beginPath();
+    H.forEach((t,i)=>{
+      const x=i/(HS-1)*NX;
+      const y=180-(t-MN)/RG*180;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.lineTo(NX,180); ctx.lineTo(0,180); ctx.closePath();
+    ctx.fillStyle=hg; ctx.fill();
+    // line
+    ctx.strokeStyle='#00e5c8'; ctx.lineWidth=2.5;
+    ctx.shadowColor='#00e5c8'; ctx.shadowBlur=7;
+    ctx.beginPath();
+    H.forEach((t,i)=>{
+      const x=i/(HS-1)*NX;
+      const y=180-(t-MN)/RG*180;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.stroke(); ctx.shadowBlur=0;
+    // current dot
+    const LY=180-(H[H.length-1]-MN)/RG*180;
+    ctx.fillStyle='#00e5c8'; ctx.shadowColor='#00e5c8'; ctx.shadowBlur=12;
+    ctx.beginPath(); ctx.arc(NX,LY,5,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+  }
+
+  // PREDICTION line
+  const A=ai();
+  const predC=A.preCool?'#ff4060':'#22aaff';
+  const pts=[];
+  for(let i=0;i<=PS;i++){
+    const f=i/PS;
+    pts.push(Math.max(16,Math.min(85,T+(A.p30-T)*f+Math.sin(i*1.4)*(1-f)*.35)));
+  }
+  // fill
+  const pg=ctx.createLinearGradient(NX,0,W,0);
+  pg.addColorStop(0,A.preCool?'rgba(255,64,96,.15)':'rgba(34,170,255,.1)');
+  pg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath();
+  pts.forEach((p,i)=>{
+    const x=NX+i/PS*(W-NX);
+    const y=180-(p-MN)/RG*180;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.lineTo(W,180); ctx.lineTo(NX,180); ctx.closePath();
+  ctx.fillStyle=pg; ctx.fill();
+  // line
+  ctx.strokeStyle=predC; ctx.lineWidth=2.5;
+  ctx.setLineDash([8,4]);
+  ctx.shadowColor=predC; ctx.shadowBlur=8;
+  ctx.beginPath();
+  const startY=H.length>0?180-(H[H.length-1]-MN)/RG*180:180-(T-MN)/RG*180;
+  ctx.moveTo(NX,startY);
+  pts.forEach((p,i)=>{
+    const x=NX+i/PS*(W-NX);
+    const y=180-(p-MN)/RG*180;
+    ctx.lineTo(x,y);
+  });
+  ctx.stroke(); ctx.setLineDash([]); ctx.shadowBlur=0;
+  // end dot
+  const eY=180-(pts[pts.length-1]-MN)/RG*180;
+  ctx.fillStyle=predC; ctx.shadowColor=predC; ctx.shadowBlur=10;
+  ctx.beginPath(); ctx.arc(W-5,eY,5,0,Math.PI*2); ctx.fill();
+  ctx.shadowBlur=0;
+  // threat label
+  if(A.preCool){
+    ctx.fillStyle='#ff4060'; ctx.font='bold 9px Share Tech Mono';
+    ctx.fillText('⚠ PREDICTED PEAK',NX+(W-NX)*.4,eY-8);
+  }
+
+  // PWM bar at bottom (height 7px)
+  const BY=180-7;
+  ctx.fillStyle='#0d2230'; ctx.fillRect(0,BY,W,7);
+  const pw=PWM/255*NX;
+  ctx.fillStyle='rgba(0,229,200,.4)'; ctx.fillRect(0,BY,pw,7);
+  if(A.prePWM>0){
+    ctx.fillStyle='rgba(34,170,255,.3)';
+    ctx.fillRect(NX,BY,A.prePWM/255*(W-NX),7);
+  }
+  ctx.fillStyle='#5a8a9a'; ctx.font='8px Share Tech Mono';
+  ctx.fillText('PWM',2,BY+6);
+}
+
+// ══════════════════════
+// THERMAL CAMERA — fixed
+// ══════════════════════
+function drawThermal(){
+  const c=document.getElementById('thermalCanvas');
+  const W=c.parentElement.clientWidth-24;
+  if(W<50)return;
+  const COLS=8, ROWS=4;
+  const CW=Math.floor(W/COLS), CH=20;
+  c.width=W; c.height=CH*ROWS;
+  const ctx=c.getContext('2d');
+  ctx.clearRect(0,0,W,CH*ROWS);
+  for(let r=0;r<ROWS;r++){
+    for(let col=0;col<COLS;col++){
+      const isHot=(r===1||r===2)&&(col===3||col===4);
+      const base=T+(Math.random()-.5)*5+(isHot?heat*0.8:0);
+      const n=Math.max(0,Math.min(1,(base-18)/65));
+      const R=Math.round(10+n*245);
+      const G=Math.round(150*(1-n)*.25);
+      const B=Math.round(230*(1-n));
+      ctx.fillStyle=`rgb(${R},${G},${B})`;
+      ctx.fillRect(col*CW+1,r*CH+1,CW-2,CH-2);
+      // temp label on each cell
+      ctx.fillStyle='rgba(255,255,255,.6)';
+      ctx.font='8px Share Tech Mono';
+      ctx.fillText(base.toFixed(0),col*CW+4,r*CH+13);
+    }
+  }
+}
+
+// ══════════════════════
+// INA226
+// ══════════════════════
+function buildINA(){
+  const names=['CPU','GPU','MEM','SYS'];
+  document.getElementById('inaGrid').innerHTML=names.map((n,i)=>`
+    <div class="ib" id="ib${i}">
+      <div class="ilbl">${n} POWER</div>
+      <div class="ival" id="iv${i}" style="color:#5a8a9a;">2.1W</div>
+      <div class="ibar"><div class="ibf" id="ibf${i}" style="width:10%;background:#1a3a4a;"></div></div>
+    </div>`).join('');
+}
+function updateINA(){
+  const ant=heat>0?heat*.75:schedT>0&&schedT<12?schedW*(1-schedT/12):0;
+  ina=ina.map((v,i)=>Math.max(.4,Math.min(22,v+(ant*[.4,.3,.15,.15][i]-v*.08)*.35+(Math.random()-.5)*.2)));
+  const tot=ina.reduce((a,b)=>a+b,0);
+  Ph.push(tot); if(Ph.length>32)Ph.shift();
+  ina.forEach((v,i)=>{
+    const hot=v>4;
+    const el=document.getElementById('iv'+i);
+    const bf=document.getElementById('ibf'+i);
+    const box=document.getElementById('ib'+i);
+    if(el){el.textContent=v.toFixed(1)+'W';el.style.color=hot?'#ff4060':v>2.5?'#ffaa00':'#5a8a9a';}
+    if(bf){bf.style.width=(v/22*100)+'%';bf.style.background=hot?'#ff4060':v>2.5?'#ffaa00':'#1a3a4a';}
+    if(box)box.className='ib'+(hot?' hot':'');
+  });
+}
+
+// ══════════════════════
+// PELTIERS
+// ══════════════════════
+function buildPel(){
+  document.getElementById('pelGrid').innerHTML=[0,1,2,3].map(i=>`
+    <div class="pt" id="pt${i}">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:#5a8a9a;margin-bottom:4px;">TEC-${i+1}</div>
+      <div class="pnum" id="pn${i}" style="color:#5a8a9a;">0</div>
+      <div style="font-size:9px;color:#5a8a9a;margin-top:2px;" id="pp${i}">0%</div>
+      <div class="pbar"><div class="pbf" id="pb${i}" style="width:0%;background:#1a3a4a;"></div></div>
+    </div>`).join('');
+}
+function updatePel(){
+  pelV=pelV.map(()=>Math.max(0,Math.min(255,PWM+(Math.random()-.5)*5)));
+  const avg=pelV.reduce((a,b)=>a+b,0)/4;
+  document.getElementById('avgPwm').textContent=Math.round(avg)+' / 255';
+  document.getElementById('pwmTotalBar').style.width=(avg/255*100)+'%';
+  const ps=document.getElementById('pelStat');
+  if(ps){ps.textContent=mode==='stop'?'OFFLINE':avg>210?'MAX POWER':avg>70?'COOLING':avg>15?'ACTIVE':'STANDBY';ps.style.color=mode==='stop'?'#ff4060':avg>70?'#00e5c8':'#5a8a9a';}
+  pelV.forEach((p,i)=>{
+    const pct=p/255;
+    const col=pct>.7?'#22aaff':pct>.3?'#00e5c8':'#5a8a9a';
+    const tile=document.getElementById('pt'+i);
+    if(tile)tile.className='pt'+(pct>.7?' max':pct>.25?' active':'');
+    const n=document.getElementById('pn'+i);if(n){n.textContent=Math.round(p);n.style.color=col;}
+    const pp=document.getElementById('pp'+i);if(pp)pp.textContent=(pct*100).toFixed(0)+'%';
+    const b=document.getElementById('pb'+i);
+    if(b){b.style.width=(pct*100)+'%';b.style.background=pct>.6?'linear-gradient(90deg,#00b89a,#22aaff)':pct>.2?'linear-gradient(90deg,#00b89a,#00e5c8)':'#1a3a4a';}
+  });
+}
+
+// ══════════════════════
+// PRED BOXES
+// ══════════════════════
+function buildPredBoxes(){
+  const steps=['+5s','+10s','+15s','+20s','+30s'];
+  document.getElementById('predBoxes').innerHTML=steps.map((s,i)=>`
+    <div class="pbox" id="pbox${i}">
+      <div class="pbt">${s}</div>
+      <div class="pbv" id="pbv${i}" style="color:#22aaff;">--°C</div>
+    </div>`).join('');
+}
+function updatePredBoxes(A){
+  [1,2,3,4,6].forEach((s,i)=>{
+    const v=T+(A.p30-T)*(s/6);
+    const el=document.getElementById('pbv'+i);
+    const box=document.getElementById('pbox'+i);
+    if(!el||!box)return;
+    el.textContent=v.toFixed(1)+'°C';
+    const ov=v-SP;
+    el.style.color=ov>4?'#ff4060':ov>1.5?'#ffaa00':'#22aaff';
+    box.className='pbox'+(ov>4?' hot':ov>1.5?' warm':' cool');
+  });
+}
+
+// ══════════════════════
+// LOG
+// ══════════════════════
+function addLog(msg,t='ok'){
+  const d=new Date();
+  const ts=`${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+  logs.unshift({ts,msg,t});
+  if(logs.length>7)logs.pop();
+  document.getElementById('sLog').innerHTML=logs.map(l=>`<div class="le"><span class="lts">${l.ts}</span><span class="l${l.t}">${l.msg}</span></div>`).join('');
+}
+
+// ══════════════════════
+// MAIN LOOP
+// ══════════════════════
+function loop(){
+  tick++;
+  // scheduled load countdown
+  if(schedT>0){schedT--;if(schedT===0){heat=schedW;addLog(`WORKLOAD: ${schedW}W heat active`,'warn');}}
+  if(heat>0)heat=Math.max(0,heat-.1);
+
+  updateINA();
+  Th.push(T); if(Th.length>80)Th.shift();
+  const A=ai();
+  preCool=A.preCool;
+
+  // compute PWM
+  if(mode==='stop') PWM=0;
+  else if(mode==='ai') PWM=A.preCool?Math.max(A.prePWM,pid()*.4):pid();
+  else PWM=pid();
+  PWM=Math.max(0,Math.min(255,PWM));
+
+  // physics — cooling always stronger than heat at max PWM
+  T=Math.max(16,Math.min(88,T+heat*.09-(PWM/255)*8*.16+.02+(Math.random()-.5)*.1));
+
+  // update stat cards
+  const ov=T>68;
+  const tn=document.getElementById('tNow');
+  tn.innerHTML=T.toFixed(1)+'<span class="unit">°C</span>';
+  tn.style.color=ov?'#ff4060':T>SP+3?'#ffaa00':T<SP-2?'#22aaff':'#00e5c8';
+
+  const tp=document.getElementById('tPred');
+  tp.innerHTML=A.p30.toFixed(1)+'<span class="unit">°C</span>';
+  tp.style.color=A.p30>SP+4?'#ff4060':A.p30>SP+1.5?'#ffaa00':'#22aaff';
+
+  const ps=document.getElementById('pStat');
+  if(A.preCool){ps.textContent='⚠ EXCEEDS TARGET — PRE-COOLING';ps.style.color='#ff4060';}
+  else if(A.p30>SP+1){ps.textContent='↑ Slight rise — monitoring';ps.style.color='#ffaa00';}
+  else{ps.textContent='✓ Will hold at target';ps.style.color='#00e5c8';}
+
+  // trend
+  const sl=Th.length>6?Th[Th.length-1]-Th[Th.length-6]:0;
+  const tt=document.getElementById('tTrend');
+  tt.textContent=sl>.3?'↑ RISING':sl<-.3?'↓ COOLING':'→ STABLE';
+  tt.style.color=sl>.5?'#ff4060':sl<-.3?'#00e5c8':'#5a8a9a';
+
+  updatePredBoxes(A);
+  updatePel();
+  drawGraph();
+  drawThermal();
+
+  // pel reason
+  const pr=document.getElementById('pelReason');
+  if(pr){
+    pr.textContent=A.preCool&&mode==='ai'?'PRE-EMPTIVE: AI saw power spike → cooling before heat':PWM>100?'REACTIVE: current temp above setpoint':PWM>20?'MAINTAINING setpoint':'STANDBY: at target';
+    pr.style.color=A.preCool?'#00e5c8':'#5a8a9a';
+  }
+
+  // alert
+  const al=document.getElementById('alert');
+  if(mode==='stop'){al.style.cssText='background:#ff406010;border-color:#ff406050;color:#ff4060;border-radius:7px;padding:9px 14px;margin-bottom:10px;font-family:Share Tech Mono,monospace;font-size:11px;border:1px solid;';al.textContent='🔴 EMERGENCY STOP — all Peltier modules offline';}
+  else if(A.preCool){al.style.cssText='background:#ff406012;border-color:#ff406055;color:#ff4060;border-radius:7px;padding:9px 14px;margin-bottom:10px;font-family:Share Tech Mono,monospace;font-size:11px;border:1px solid;animation:ab .5s infinite;';al.textContent=`🧊 AI PREDICTS ${A.p30.toFixed(1)}°C in 30s — PRE-COOLING NOW · Peltiers at PWM:${Math.round(PWM)}`;}
+  else if(schedT>0&&schedT<8){al.style.cssText='background:#ffaa0010;border-color:#ffaa0050;color:#ffaa00;border-radius:7px;padding:9px 14px;margin-bottom:10px;font-family:Share Tech Mono,monospace;font-size:11px;border:1px solid;';al.textContent=`⚡ INA226 power rising — load in ${(schedT*.5).toFixed(1)}s — AI preparing cooling`;}
+  else if(ov){al.style.cssText='background:#ff406015;border-color:#ff406055;color:#ff4060;border-radius:7px;padding:9px 14px;margin-bottom:10px;font-family:Share Tech Mono,monospace;font-size:11px;border:1px solid;';al.textContent=`🌡 OVER TEMP ${T.toFixed(1)}°C — maximum cooling engaged`;}
+  else{al.style.cssText='background:#00e5c810;border-color:#00e5c840;color:#00e5c8;border-radius:7px;padding:9px 14px;margin-bottom:10px;font-family:Share Tech Mono,monospace;font-size:11px;border:1px solid;';al.textContent=`❄ AI monitoring · confidence:${A.conf.toFixed(0)}% · holding ${SP}°C · PWM:${Math.round(PWM)}`;}
+
+  // header status
+  document.getElementById('sTxt').textContent=mode==='stop'?'STOPPED':A.preCool?'PRE-COOLING':ov?'OVER TEMP':'NOMINAL';
+  document.getElementById('sTxt').style.color=mode==='stop'?'#ff4060':A.preCool?'#22aaff':ov?'#ffaa00':'#00e5c8';
+
+  // logs
+  if(A.preCool&&tick%4===0)addLog(`AI: pred ${A.p30.toFixed(1)}°C → pre-cool PWM:${Math.round(PWM)}`,'prd');
+  if(schedT===4)addLog('INA226: power rising → load in 2s → AI ramping','prd');
+  if(heat>0.5&&tick%7===0)addLog(`HEAT:${heat.toFixed(1)}W T:${T.toFixed(1)}°C PWM:${Math.round(PWM)}`,'warn');
+  if(Math.abs(SP-T)<0.5&&tick%20===0)addLog(`STABLE ±0.3°C @ ${SP}°C`,'ok');
+  if(ov&&tick%5===0)addLog(`OVER TEMP ${T.toFixed(1)}°C → max cooling`,'crit');
+}
+
+// ══════════════════════
+// CONTROLS
+// ══════════════════════
+function sched(w,s){schedW=w;schedT=s*2;addLog(`SCHEDULED: ${w}W in ${s}s — watch graph`,'warn');addLog(`INA226 will spike in ~${(s*.5).toFixed(0)}s`,'prd');}
+function setMode(m){
+  mode=m; I=0;
+  if(m==='stop'){PWM=0;addLog('EMERGENCY STOP','crit');}
+  if(m==='ai')addLog('AI PREDICTIVE MODE','ok');
+  if(m==='pid')addLog('PID REACTIVE — no prediction','warn');
+  ['bAI','bPID'].forEach(id=>{const b=document.getElementById(id);if(b)b.className='btn';});
+  const b=document.getElementById(m==='ai'?'bAI':'bPID');if(b)b.className='btn on';
+  const mb=document.getElementById('mBadge');
+  if(mb){mb.style.background=m==='ai'?'#00e5c815':m==='pid'?'#ffaa0015':'#ff406015';mb.style.borderColor=m==='ai'?'#00e5c8':m==='pid'?'#ffaa00':'#ff4060';mb.style.color=m==='ai'?'#00e5c8':m==='pid'?'#ffaa00':'#ff4060';mb.textContent=m==='ai'?'AI-ACTIVE':m==='pid'?'PID-ONLY':'STOPPED';}
+}
+function setSP(v){SP=parseInt(v);document.getElementById('spV').textContent=v;document.getElementById('spL').textContent=v;I=0;addLog(`SETPOINT → ${v}°C`,'ok');}
+function reset(){T=32;I=0;prevE=0;heat=0;schedT=0;Th.length=0;Ph.length=0;logs.length=0;ina=[2.1,1.8,2.4,1.6];setMode('ai');addLog('SYSTEM RESET','ok');}
+
+// ══════════════════════
+// INIT
+// ══════════════════════
+buildINA(); buildPel(); buildPredBoxes();
+addLog('AETHER-FLOW v3.0 booted','ok');
+addLog('TFT model loaded · INA226 × 4 ready','ok');
+addLog('Use SCHEDULE buttons to test prediction','prd');
+// delay start slightly so DOM has full width
+setTimeout(()=>{
+  drawGraph();
+  drawThermal();
+  setInterval(loop,500);
+},200);
+window.addEventListener('resize',()=>{drawGraph();drawThermal();});
+</script>
+</body>
+</html>
