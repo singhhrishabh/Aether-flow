@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aether-Flow — Assembly Animation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:   #060d1a;
+    --dark:   #0a1628;
+    --teal:   #0d9488;
+    --bright: #14d9c4;
+    --pale:   #ccfbf1;
+    --amber:  #f59e0b;
+    --coral:  #f43f5e;
+    --purple: #818cf8;
+    --white:  #f0fafa;
+    --gray:   #4a6a80;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--navy);
+    overflow: hidden;
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--white);
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  #cursor {
+    position: fixed; width: 12px; height: 12px;
+    border: 2px solid var(--bright); border-radius: 50%;
+    pointer-events: none; z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s, width 0.2s, height 0.2s;
+    mix-blend-mode: screen;
+  }
+
+  /* ── SCENE CONTAINER ── */
+  #scene {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+
+  /* ── BACKGROUND GRID ── */
+  #grid {
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(13,148,136,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(13,148,136,0.06) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridPulse 4s ease-in-out infinite;
+  }
+  @keyframes gridPulse {
+    0%,100% { opacity: 0.5; }
+    50%      { opacity: 1; }
+  }
+
+  /* Scanline overlay */
+  #scanline {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px
+    );
+  }
+
+  /* ── STAGE TITLE ── */
+  #stage-title {
+    position: fixed; top: 32px; left: 50%; transform: translateX(-50%);
+    z-index: 100; text-align: center;
+    opacity: 0; transition: opacity 0.8s;
+  }
+  #stage-title .label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; color: var(--teal);
+    letter-spacing: 6px; text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  #stage-title .title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(22px, 3vw, 36px);
+    font-weight: 900; color: var(--white);
+    text-shadow: 0 0 30px rgba(20,217,196,0.4);
+  }
+
+  /* ── PROGRESS BAR ── */
+  #progress-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: 3px; background: rgba(13,148,136,0.2);
+    z-index: 100;
+  }
+  #progress-fill {
+    height: 100%; background: var(--bright);
+    width: 0%; transition: width 0.5s ease;
+    box-shadow: 0 0 10px var(--bright);
+  }
+
+  /* ── STEP INDICATOR ── */
+  #step-indicator {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    z-index: 100; display: flex; gap: 10px; align-items: center;
+  }
+  .step-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    border: 1px solid var(--teal); background: transparent;
+    transition: all 0.4s;
+  }
+  .step-dot.active { background: var(--bright); box-shadow: 0 0 8px var(--bright); }
+  .step-dot.done   { background: var(--teal); }
+
+  /* ── COMPONENT CARDS ── */
+  .component {
+    position: absolute;
+    display: flex; flex-direction: column; align-items: center;
+    transition: all 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 10; cursor: pointer;
+    opacity: 0; transform: scale(0.5);
+  }
+  .component.visible { opacity: 1; transform: scale(1); }
+
+  .comp-icon {
+    width: 90px; height: 90px;
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(20,217,196,0.3), 0 8px 32px rgba(0,0,0,0.5);
+    transition: all 0.3s;
+  }
+  .comp-icon::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.08), transparent);
+    border-radius: 16px;
+  }
+  .comp-icon:hover { transform: scale(1.08); box-shadow: 0 0 0 2px var(--bright), 0 12px 40px rgba(20,217,196,0.3); }
+
+  .comp-icon svg { width: 44px; height: 44px; }
+
+  .comp-label {
+    margin-top: 10px; text-align: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; color: var(--bright);
+    letter-spacing: 2px; text-transform: uppercase;
+  }
+  .comp-sub {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px; color: var(--gray);
+    text-align: center; margin-top: 2px;
+  }
+
+  /* Pulse ring on component */
+  .comp-icon::after {
+    content: ''; position: absolute; inset: -4px;
+    border-radius: 20px; border: 2px solid transparent;
+    animation: pulseRing 2.5s ease-in-out infinite;
+  }
+  @keyframes pulseRing {
+    0%,100% { border-color: transparent; transform: scale(1); }
+    50%      { border-color: rgba(20,217,196,0.4); transform: scale(1.05); }
+  }
+
+  /* ── ASSEMBLY STAGE ── */
+  #assembly-stage {
+    position: fixed; inset: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.8s;
+  }
+  #assembly-stage.visible { opacity: 1; pointer-events: all; }
+
+  /* Final device */
+  #final-device {
+    position: relative;
+    width: 340px; height: 240px;
+    opacity: 0;
+    transform: scale(0.6) rotateX(20deg);
+    transition: all 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform-style: preserve-3d;
+    perspective: 800px;
+  }
+  #final-device.assembled {
+    opacity: 1; transform: scale(1) rotateX(0deg);
+  }
+
+  .device-body {
+    width: 340px; height: 240px;
+    background: linear-gradient(145deg, #0d2035, #0a1628);
+    border-radius: 16px;
+    border: 2px solid var(--teal);
+    position: relative; overflow: hidden;
+    box-shadow:
+      0 0 0 1px rgba(20,217,196,0.2),
+      0 0 60px rgba(13,148,136,0.3),
+      0 30px 80px rgba(0,0,0,0.8),
+      inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+
+  /* OLED display bar */
+  .device-oled {
+    position: absolute; top: 16px; left: 16px; right: 16px; height: 36px;
+    background: #001520; border-radius: 6px;
+    border: 1px solid rgba(20,217,196,0.4);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .oled-text {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px; color: var(--bright);
+    white-space: nowrap;
+    animation: oledScroll 6s linear infinite;
+  }
+  @keyframes oledScroll {
+    0%   { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+  }
+
+  /* TEC modules grid */
+  .tec-grid {
+    position: absolute; top: 66px; left: 16px;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px; width: 200px;
+  }
+  .tec-module {
+    height: 60px; border-radius: 8px;
+    background: linear-gradient(135deg, #0a3040, #061828);
+    border: 1px solid rgba(13,148,136,0.5);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 7px; color: var(--teal);
+    letter-spacing: 1px;
+    position: relative; overflow: hidden;
+  }
+  .tec-module::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(20,217,196,0.1), transparent);
+    animation: tecSweep 3s ease-in-out infinite;
+    animation-delay: calc(var(--i) * 0.7s);
+  }
+  @keyframes tecSweep {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+  }
+
+  /* Right side — Pi + chip */
+  .device-right {
+    position: absolute; top: 66px; right: 16px;
+    width: 100px;
+  }
+  .pi-chip {
+    width: 100px; height: 56px;
+    background: linear-gradient(135deg, #1a0a30, #0d0520);
+    border-radius: 8px; border: 1px solid var(--purple);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 7px; color: var(--purple);
+    letter-spacing: 1px; position: relative;
+    overflow: hidden;
+  }
+  .pi-chip::after {
+    content: ''; position: absolute;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--purple); top: 8px; right: 8px;
+    animation: blink 1.2s step-end infinite;
+    box-shadow: 0 0 6px var(--purple);
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .pump-unit {
+    width: 100px; height: 44px; margin-top: 8px;
+    background: linear-gradient(135deg, #001828, #000e18);
+    border-radius: 8px; border: 1px solid rgba(20,217,196,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 7px; color: rgba(20,217,196,0.6);
+    position: relative;
+  }
+  .pump-unit::before {
+    content: ''; position: absolute;
+    width: 8px; height: 8px; border-radius: 50%;
+    border: 2px solid var(--bright); left: 10px;
+    animation: spin 1.5s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Microfluidic channels */
+  .fluid-lines {
+    position: absolute; bottom: 16px; left: 16px; right: 16px; height: 32px;
+  }
+  .fluid-line {
+    position: absolute; height: 3px; border-radius: 2px;
+    background: linear-gradient(90deg, transparent, var(--bright), transparent);
+    animation: fluidFlow 2s ease-in-out infinite;
+  }
+  .fl1 { top: 4px;  left: 0; right: 0; animation-delay: 0s; }
+  .fl2 { top: 14px; left: 20px; right: 20px; animation-delay: 0.6s; opacity: 0.7; }
+  .fl3 { top: 24px; left: 40px; right: 40px; animation-delay: 1.2s; opacity: 0.5; }
+  @keyframes fluidFlow {
+    0%,100% { opacity: 0.3; transform: scaleX(0.8); }
+    50%      { opacity: 1;   transform: scaleX(1); }
+  }
+
+  /* Glowing accent lines on device */
+  .device-accent-left {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: linear-gradient(180deg, var(--bright), var(--teal), var(--bright));
+    border-radius: 16px 0 0 16px;
+    animation: accentPulse 2s ease-in-out infinite;
+  }
+  @keyframes accentPulse {
+    0%,100% { opacity: 0.6; }
+    50%      { opacity: 1; box-shadow: 0 0 12px var(--bright); }
+  }
+
+  /* Device brand name */
+  .device-brand {
+    position: absolute; bottom: 55px; right: 16px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px; font-weight: 700;
+    color: rgba(20,217,196,0.3);
+    letter-spacing: 3px;
+  }
+
+  /* ── FLOATING PARTICLES ── */
+  .particle {
+    position: fixed; pointer-events: none; z-index: 5;
+    border-radius: 50%;
+    animation: float linear infinite;
+  }
+  @keyframes float {
+    0%   { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { transform: translateY(-20vh) rotate(360deg); opacity: 0; }
+  }
+
+  /* ── FLYING COMPONENT ANIMATION ── */
+  .flying {
+    transition: all 1.0s cubic-bezier(0.68, -0.55, 0.27, 1.55) !important;
+    z-index: 50 !important;
+  }
+
+  /* ── ASSEMBLY SPARKS ── */
+  .spark {
+    position: absolute; pointer-events: none; z-index: 60;
+    width: 4px; height: 4px; border-radius: 50%;
+    background: var(--bright);
+    animation: sparkFly 0.6s ease-out forwards;
+  }
+  @keyframes sparkFly {
+    0%   { opacity: 1; transform: translate(0,0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0); }
+  }
+
+  /* ── INFO PANEL ── */
+  #info-panel {
+    position: fixed; right: 32px; top: 50%; transform: translateY(-50%);
+    z-index: 100; width: 220px;
+    opacity: 0; transition: opacity 0.8s;
+  }
+  #info-panel.visible { opacity: 1; }
+
+  .info-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid rgba(13,148,136,0.15);
+    opacity: 0; transform: translateX(20px);
+    transition: all 0.5s;
+  }
+  .info-row.show { opacity: 1; transform: translateX(0); }
+  .info-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .info-key { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--gray); letter-spacing: 1px; }
+  .info-val { font-family: 'Rajdhani', sans-serif; font-size: 13px; color: var(--white); font-weight: 600; margin-top: 1px; }
+
+  /* ── STAGE LABELS ── */
+  #stage-label {
+    position: fixed; left: 32px; bottom: 60px;
+    z-index: 100; opacity: 0; transition: opacity 0.6s;
+  }
+  #stage-label .sl-num {
+    font-family: 'Orbitron', sans-serif; font-size: 48px; font-weight: 900;
+    color: rgba(13,148,136,0.15); line-height: 1;
+  }
+  #stage-label .sl-text {
+    font-family: 'Share Tech Mono', monospace; font-size: 11px;
+    color: var(--teal); letter-spacing: 4px; margin-top: -8px;
+  }
+
+  /* ── FINAL REVEAL TEXT ── */
+  #final-text {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    text-align: center; z-index: 100;
+    opacity: 0; transition: opacity 1s;
+  }
+  #final-text.show { opacity: 1; }
+  #final-text h2 {
+    font-family: 'Orbitron', sans-serif; font-size: clamp(18px, 2.5vw, 28px);
+    font-weight: 900; color: var(--white);
+    text-shadow: 0 0 40px rgba(20,217,196,0.6);
+  }
+  #final-text p {
+    font-family: 'Rajdhani', sans-serif; font-size: 14px;
+    color: var(--teal); letter-spacing: 3px; margin-top: 6px;
+    text-transform: uppercase;
+  }
+
+  /* ── PHASE BANNER ── */
+  #phase-banner {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    z-index: 200; text-align: center;
+    opacity: 0; pointer-events: none;
+  }
+  #phase-banner.flash {
+    animation: bannerFlash 1.8s ease-out forwards;
+  }
+  @keyframes bannerFlash {
+    0%   { opacity: 0; transform: translate(-50%,-50%) scale(0.8); }
+    20%  { opacity: 1; transform: translate(-50%,-50%) scale(1.05); }
+    70%  { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%,-50%) scale(0.95); }
+  }
+  #phase-banner .pb-text {
+    font-family: 'Orbitron', sans-serif; font-size: clamp(24px, 4vw, 48px);
+    font-weight: 900; color: var(--bright);
+    text-shadow: 0 0 60px rgba(20,217,196,0.8), 0 0 120px rgba(20,217,196,0.4);
+    letter-spacing: 4px;
+  }
+
+  /* ── CONNECTION LINES ── */
+  #connection-svg {
+    position: fixed; inset: 0; z-index: 8;
+    pointer-events: none; opacity: 0;
+    transition: opacity 0.5s;
+  }
+  #connection-svg.show { opacity: 1; }
+
+  .conn-line {
+    stroke: var(--bright); stroke-width: 1.5;
+    fill: none; opacity: 0.4;
+    stroke-dasharray: 8 4;
+    animation: dashMove 1s linear infinite;
+  }
+  @keyframes dashMove { to { stroke-dashoffset: -24; } }
+
+  /* ── RESTART BUTTON ── */
+  #restart-btn {
+    position: fixed; top: 32px; right: 32px;
+    z-index: 200;
+    background: transparent; border: 1px solid var(--teal);
+    color: var(--teal); padding: 8px 20px;
+    font-family: 'Share Tech Mono', monospace; font-size: 11px;
+    letter-spacing: 3px; cursor: pointer;
+    transition: all 0.3s; opacity: 0;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  }
+  #restart-btn:hover { background: var(--teal); color: var(--navy); }
+  #restart-btn.show { opacity: 1; }
+
+  /* ── GLOW BURST on assembly ── */
+  .glow-burst {
+    position: fixed; z-index: 15; pointer-events: none;
+    border-radius: 50%; background: radial-gradient(circle, rgba(20,217,196,0.3), transparent 70%);
+    animation: burstAnim 0.8s ease-out forwards;
+  }
+  @keyframes burstAnim {
+    0%   { transform: scale(0); opacity: 1; }
+    100% { transform: scale(4); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Cursor -->
+<div id="cursor"></div>
+
+<!-- Background -->
+<div id="grid"></div>
+<div id="scanline"></div>
+
+<!-- Scene -->
+<div id="scene">
+
+  <!-- Stage title -->
+  <div id="stage-title">
+    <div class="label" id="stage-label-text">INITIALIZING</div>
+    <div class="title" id="stage-main-text">AETHER-FLOW</div>
+  </div>
+
+  <!-- Connection SVG -->
+  <svg id="connection-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+
+  <!-- Components will be injected here -->
+
+  <!-- Assembly Stage (final device) -->
+  <div id="assembly-stage">
+    <div id="final-device">
+      <div class="device-body">
+        <div class="device-accent-left"></div>
+        <div class="device-oled">
+          <div class="oled-text">AI MODE: ACTIVE &nbsp;|&nbsp; TEMP: 44.9°C &nbsp;|&nbsp; PWM: 63% &nbsp;|&nbsp; ENERGY SAVED: 41% &nbsp;|&nbsp; FAN RPM: 1200 &nbsp;|&nbsp; DEW GUARD: OK &nbsp;&nbsp;&nbsp;&nbsp;</div>
+        </div>
+        <div class="tec-grid" id="tec-grid">
+          <div class="tec-module" style="--i:0">TEC MODULE 1</div>
+          <div class="tec-module" style="--i:1">TEC MODULE 2</div>
+          <div class="tec-module" style="--i:2">TEC MODULE 3</div>
+          <div class="tec-module" style="--i:3">TEC MODULE 4</div>
+        </div>
+        <div class="device-right">
+          <div class="pi-chip">RASPBERRY PI 5</div>
+          <div class="pump-unit">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MICROPUMP</div>
+        </div>
+        <div class="fluid-lines">
+          <div class="fluid-line fl1"></div>
+          <div class="fluid-line fl2"></div>
+          <div class="fluid-line fl3"></div>
+        </div>
+        <div class="device-brand">AETHER-FLOW v1</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase banner -->
+  <div id="phase-banner"><div class="pb-text" id="pb-text"></div></div>
+
+  <!-- Info panel -->
+  <div id="info-panel">
+    <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--teal);letter-spacing:4px;margin-bottom:12px;">SPECIFICATIONS</div>
+    <div class="info-row" id="ir1"><span class="info-dot" style="background:var(--bright)"></span><div><div class="info-key">TEMP STABILITY</div><div class="info-val">±0.3°C</div></div></div>
+    <div class="info-row" id="ir2"><span class="info-dot" style="background:var(--amber)"></span><div><div class="info-key">AI LATENCY</div><div class="info-val">&lt; 30ms</div></div></div>
+    <div class="info-row" id="ir3"><span class="info-dot" style="background:#34d399"></span><div><div class="info-key">ENERGY SAVED</div><div class="info-val">41%</div></div></div>
+    <div class="info-row" id="ir4"><span class="info-dot" style="background:var(--purple)"></span><div><div class="info-key">PREDICT AHEAD</div><div class="info-val">15 – 30s</div></div></div>
+    <div class="info-row" id="ir5"><span class="info-dot" style="background:var(--coral)"></span><div><div class="info-key">NOISE LEVEL</div><div class="info-val">~28 dB</div></div></div>
+    <div class="info-row" id="ir6"><span class="info-dot" style="background:var(--teal)"></span><div><div class="info-key">PROTOTYPE COST</div><div class="info-val">$359</div></div></div>
+  </div>
+
+  <!-- Stage label -->
+  <div id="stage-label">
+    <div class="sl-num" id="sl-num">01</div>
+    <div class="sl-text" id="sl-text">COMPONENTS</div>
+  </div>
+
+  <!-- Final text -->
+  <div id="final-text">
+    <h2>AETHER-FLOW</h2>
+    <p>AI-Driven Molecular Cooling Infrastructure</p>
+  </div>
+
+  <!-- Step dots -->
+  <div id="step-indicator">
+    <div class="step-dot" id="dot0"></div>
+    <div class="step-dot" id="dot1"></div>
+    <div class="step-dot" id="dot2"></div>
+    <div class="step-dot" id="dot3"></div>
+    <div class="step-dot" id="dot4"></div>
+  </div>
+
+  <!-- Progress bar -->
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+
+  <!-- Restart -->
+  <button id="restart-btn" onclick="restartAnimation()">↺ REPLAY</button>
+</div>
+
+<script>
+// ── Cursor ──────────────────────────────────────────────────
+const cursor = document.getElementById('cursor');
+document.addEventListener('mousemove', e => {
+  cursor.style.left = e.clientX + 'px';
+  cursor.style.top  = e.clientY + 'px';
+});
+
+// ── Particles ───────────────────────────────────────────────
+function createParticles() {
+  for (let i = 0; i < 25; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random() * 3 + 1;
+    const colors = ['#14d9c4','#0d9488','#818cf8','#f59e0b'];
+    p.style.cssText = `
+      width:${size}px; height:${size}px;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      left:${Math.random()*100}%;
+      animation-duration:${8+Math.random()*12}s;
+      animation-delay:${Math.random()*8}s;
+      opacity:${Math.random()*0.6+0.2};
+    `;
+    document.body.appendChild(p);
+  }
+}
+createParticles();
+
+// ── Component definitions ───────────────────────────────────
+const components = [
+  {
+    id: 'esp32', label: 'ESP32', sub: 'Controller',
+    color: '#0d9488', bg: 'linear-gradient(135deg,#0a3040,#061828)',
+    svg: `<svg viewBox="0 0 48 48" fill="none"><rect x="8" y="14" width="32" height="20" rx="3" stroke="#14d9c4" stroke-width="2"/><rect x="12" y="18" width="24" height="12" rx="2" fill="rgba(20,217,196,0.15)"/><line x1="4" y1="18" x2="8" y2="18" stroke="#14d9c4" stroke-width="2"/><line x1="4" y1="22" x2="8" y2="22" stroke="#14d9c4" stroke-width="2"/><line x1="4" y1="26" x2="8" y2="26" stroke="#14d9c4" stroke-width="2"/><line x1="4" y1="30" x2="8" y2="30" stroke="#14d9c4" stroke-width="2"/><line x1="40" y1="18" x2="44" y2="18" stroke="#14d9c4" stroke-width="2"/><line x1="40" y1="22" x2="44" y2="22" stroke="#14d9c4" stroke-width="2"/><line x1="40" y1="26" x2="44" y2="26" stroke="#14d9c4" stroke-width="2"/><line x1="40" y1="30" x2="44" y2="30" stroke="#14d9c4" stroke-width="2"/><circle cx="24" cy="24" r="3" fill="#14d9c4" opacity="0.8"/></svg>`,
+    startPos: { x: -200, y: -150 }
+  },
+  {
+    id: 'peltier', label: 'TEC Module', sub: 'Peltier ×4',
+    color: '#0d9488', bg: 'linear-gradient(135deg,#0a4050,#051520)',
+    svg: `<svg viewBox="0 0 48 48" fill="none"><rect x="6" y="6" width="36" height="36" rx="4" stroke="#14d9c4" stroke-width="2"/><rect x="12" y="12" width="24" height="24" rx="2" fill="rgba(20,217,196,0.1)" stroke="#14d9c4" stroke-width="1" stroke-dasharray="3 2"/><path d="M18 18 L24 30 L30 18" stroke="#14d9c4" stroke-width="2" fill="none"/><circle cx="24" cy="18" r="2" fill="#14d9c4"/><line x1="24" y1="6" x2="24" y2="12" stroke="#14d9c4" stroke-width="2"/><line x1="24" y1="36" x2="24" y2="42" stroke="#14d9c4" stroke-width="2"/></svg>`,
+    startPos: { x: 250, y: -180 }
+  },
+  {
+    id: 'tmp117', label: 'TMP117', sub: 'Temp Sensor ×6',
+    color: '#f59e0b', bg: 'linear-gradient(135deg,#2a1a00,#1a0e00)',
+    svg: `<svg viewBox="0 0 48 48" fill="none"><rect x="16" y="8" width="16" height="28" rx="8" stroke="#f59e0b" stroke-width="2"/><line x1="24" y1="36" x2="24" y2="42" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/><rect x="20" y="28" width="8" height="8" rx="4" fill="#f59e0b" opacity="0.8"/><line x1="28" y1="18" x2="34" y2="18" stroke="#f59e0b" stroke-width="1.5" opacity="0.6"/><line x1="28" y1="22" x2="36" y2="22" stroke="#f59e0b" stroke-width="1.5" opacity="0.6"/><line x1="28" y1="26" x2="34" y2="26" stroke="#f59e0b" stroke-width="1.5" opacity="0.6"/></svg>`,
+    startPos: { x: -250, y: 50 }
+  },
+  {
+    id: 'raspberrypi', label: 'Raspberry Pi 5', sub: 'AI Compute',
+    color: '#818cf8', bg: 'linear-gradient(135deg,#1a0a30,#0d0520)',
+    svg: `<svg viewBox="0 0 48 48" fill="none"><rect x="6" y="10" width="36" height="28" rx="3" stroke="#818cf8" stroke-width="2"/><rect x="10" y="14" width="28" height="16" rx="2" fill="rgba(129,140,248,0.15)"/><circle cx="24" cy="22" r="4" stroke="#818cf8" stroke-width="1.5" fill="rgba(129,140,248,0.3)"/><rect x="22" y="38" width="4" height="4" rx="1" fill="#818cf8"/><rect x="14" y="38" width="4" height="4" rx="1" fill="#818cf8" opacity="0.5"/><rect x="30" y="38" width="4" height="4" rx="1" fill="#818cf8" opacity="0.5"/></svg>`,
+    startPos: { x: 200, y: 150 }
+  },
+  {
+    id: 'mlx90640', label: 'MLX90640', sub: 'Thermal Camera',
+    color: '#f43f5e', bg: 'linear-gradient(135deg,#2a0010,#180008)',
+    svg: `<svg viewBox="0 0 48 48" fill="none"><rect x="12" y="14" width="24" height="20" rx="3" stroke="#f43f5e" stroke-width="2"/><circle cx="24" cy="24" r="6" stroke="#f43f5e" stroke-width="1.5"/><circle cx="24" cy="24" r="2" fill="#f43f5e"/><rect x="16" y="18" width="4" height="3" fill="#f43f5e" opacity="0.3"/><rect x="28" y="18" width="4" height="3" fill="#f43f5e" opacity="0.3"/><rect x="16" y="27" width="4" height="3" fill="#f43f5e" opacity="0.3"/><rect x="28" y="27" width="4" height="3" fill="#f43f5e" opacity="0.3"/><rect x="20" y="8" width="8" height="6" rx="2" stroke="#f43f5e" stroke-width="1.5"/><line x1="24" y1="8" x2="24" y2="14" stroke="#f43f5e" stroke-width="1.5"/></svg>`,
+    startPos: { x: -180, y: 200 }
+  },
+  {
+    id: 'ina226', label: 'INA226', sub: 'Power Monitor',
+    color: '#34d399', bg: 'linear-gradient(135deg,#002a1a,#001510)',
+    svg: `<svg viewBox="0 0 48 48" fill="none"><rect x="8" y="16" width="32" height="16" rx="3" stroke="#34d399" stroke-width="2"/><path d="M16 24 Q20 18 24 24 Q28 30 32 24" stroke="#34d399" stroke-width="2" fill="none"/><line x1="12" y1="8" x2="12" y2="16" stroke="#34d399" stroke-width="2"/><line x1="20" y1="8" x2="20" y2="16" stroke="#34d399" stroke-width="2"/><line x1="28" y1="8" x2="28" y2="16" stroke="#34d399" stroke-width="2"/><line x1="36" y1="8" x2="36" y2="16" stroke="#34d399" stroke-width="2"/><line x1="12" y1="32" x2="12" y2="40" stroke="#34d399" stroke-width="2"/><line x1="36" y1="32" x2="36" y2="40" stroke="#34d399" stroke-width="2"/></svg>`,
+    startPos: { x: 240, y: -50 }
+  },
+  {
+    id: 'pump', label: 'Micropump', sub: 'Kamoer NKP',
+    color: '#14d9c4', bg: 'linear-gradient(135deg,#003040,#001828)',
+    svg: `<svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="14" stroke="#14d9c4" stroke-width="2"/><circle cx="24" cy="24" r="6" stroke="#14d9c4" stroke-width="1.5" stroke-dasharray="4 2"/><path d="M24 10 L28 18 L20 18 Z" fill="#14d9c4" opacity="0.8"/><path d="M24 38 L20 30 L28 30 Z" fill="#14d9c4" opacity="0.4"/><path d="M10 24 L18 20 L18 28 Z" fill="#14d9c4" opacity="0.6"/><path d="M38 24 L30 28 L30 20 Z" fill="#14d9c4" opacity="0.6"/></svg>`,
+    startPos: { x: -220, y: -80 }
+  },
+  {
+    id: 'sht40', label: 'SHT40', sub: 'Humidity Sensor',
+    color: '#60a5fa', bg: 'linear-gradient(135deg,#001a3a,#000d20)',
+    svg: `<svg viewBox="0 0 48 48" fill="none"><rect x="14" y="10" width="20" height="28" rx="4" stroke="#60a5fa" stroke-width="2"/><path d="M24 20 Q28 26 24 32 Q20 26 24 20Z" fill="#60a5fa" opacity="0.6"/><line x1="10" y1="20" x2="14" y2="20" stroke="#60a5fa" stroke-width="2"/><line x1="10" y1="28" x2="14" y2="28" stroke="#60a5fa" stroke-width="2"/><line x1="34" y1="20" x2="38" y2="20" stroke="#60a5fa" stroke-width="2"/><line x1="34" y1="28" x2="38" y2="28" stroke="#60a5fa" stroke-width="2"/></svg>`,
+    startPos: { x: 180, y: 100 }
+  },
+];
+
+// ── Layout positions for components spread ──────────────────
+function getSpreadPositions() {
+  const W = window.innerWidth, H = window.innerHeight;
+  const cx = W/2, cy = H/2;
+  const positions = [
+    { x: cx - 380, y: cy - 200 },
+    { x: cx - 80,  y: cy - 260 },
+    { x: cx + 250, y: cy - 200 },
+    { x: cx - 380, y: cy + 40  },
+    { x: cx + 250, y: cy + 40  },
+    { x: cx - 150, y: cy + 180 },
+    { x: cx + 100, y: cy + 180 },
+    { x: cx + 20,  y: cy - 260 },
+  ];
+  return positions;
+}
+
+// ── State ───────────────────────────────────────────────────
+let compElements = [];
+let currentPhase = 0;
+let animTimeout = [];
+
+function scheduleTimeout(fn, delay) {
+  const id = setTimeout(fn, delay);
+  animTimeout.push(id);
+  return id;
+}
+
+function clearAllTimeouts() {
+  animTimeout.forEach(clearTimeout);
+  animTimeout = [];
+}
+
+// ── Create component elements ───────────────────────────────
+function createComponents() {
+  const scene = document.getElementById('scene');
+
+  components.forEach((comp, i) => {
+    const el = document.createElement('div');
+    el.className = 'component';
+    el.id = 'comp-' + comp.id;
+    el.style.left = '50%';
+    el.style.top  = '50%';
+    el.style.transform = 'translate(-50%,-50%) scale(0.5)';
+    el.innerHTML = `
+      <div class="comp-icon" style="background:${comp.bg}; box-shadow: 0 0 0 1px ${comp.color}44, 0 8px 32px rgba(0,0,0,0.5);">
+        ${comp.svg}
+      </div>
+      <div class="comp-label" style="color:${comp.color}">${comp.label}</div>
+      <div class="comp-sub">${comp.sub}</div>
+    `;
+    scene.appendChild(el);
+    compElements.push(el);
+  });
+}
+
+// ── Update progress ─────────────────────────────────────────
+function setProgress(pct) {
+  document.getElementById('progress-fill').style.width = pct + '%';
+}
+
+function setDot(idx, state) {
+  const dot = document.getElementById('dot' + idx);
+  if (!dot) return;
+  dot.className = 'step-dot ' + state;
+}
+
+// ── Flash phase banner ───────────────────────────────────────
+function flashBanner(text) {
+  const banner = document.getElementById('phase-banner');
+  const pb = document.getElementById('pb-text');
+  pb.textContent = text;
+  banner.classList.remove('flash');
+  void banner.offsetWidth;
+  banner.classList.add('flash');
+}
+
+// ── Spawn sparks ─────────────────────────────────────────────
+function spawnSparks(x, y, count = 12) {
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('div');
+    s.className = 'spark';
+    const angle = (Math.PI * 2 * i) / count;
+    const dist = 30 + Math.random() * 50;
+    s.style.left = x + 'px';
+    s.style.top  = y + 'px';
+    s.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+    s.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+    s.style.animationDuration = (0.4 + Math.random() * 0.4) + 's';
+    s.style.background = ['#14d9c4','#f59e0b','#ffffff'][Math.floor(Math.random()*3)];
+    document.getElementById('scene').appendChild(s);
+    setTimeout(() => s.remove(), 800);
+  }
+}
+
+// ── Glow burst ───────────────────────────────────────────────
+function glowBurst(x, y, size = 100) {
+  const g = document.createElement('div');
+  g.className = 'glow-burst';
+  g.style.cssText = `left:${x-size/2}px;top:${y-size/2}px;width:${size}px;height:${size}px;`;
+  document.body.appendChild(g);
+  setTimeout(() => g.remove(), 900);
+}
+
+// ── Draw connection lines ────────────────────────────────────
+function drawConnections(positions) {
+  const svg = document.getElementById('connection-svg');
+  svg.innerHTML = '';
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
+
+  positions.forEach((pos, i) => {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', pos.x + 45);
+    line.setAttribute('y1', pos.y + 45);
+    line.setAttribute('x2', cx);
+    line.setAttribute('y2', cy);
+    line.setAttribute('class', 'conn-line');
+    line.style.animationDelay = (i * 0.15) + 's';
+    svg.appendChild(line);
+  });
+  svg.classList.add('show');
+}
+
+// ════════════════════════════════════════════════════════════
+//  ANIMATION SEQUENCE
+// ════════════════════════════════════════════════════════════
+
+function startAnimation() {
+  currentPhase = 0;
+
+  // Show title
+  scheduleTimeout(() => {
+    document.getElementById('stage-title').style.opacity = '1';
+    document.getElementById('stage-label-text').textContent = 'PHASE 01';
+    document.getElementById('stage-main-text').textContent = 'GATHERING COMPONENTS';
+    document.getElementById('stage-label').style.opacity = '1';
+    document.getElementById('sl-num').textContent = '01';
+    document.getElementById('sl-text').textContent = 'COMPONENTS';
+    setDot(0, 'active');
+    setProgress(5);
+    flashBanner('PHASE 01 — COMPONENTS');
+  }, 500);
+
+  // ── PHASE 1: Components fly in from off-screen ──────────
+  const spreadPos = getSpreadPositions();
+
+  components.forEach((comp, i) => {
+    scheduleTimeout(() => {
+      const el = document.getElementById('comp-' + comp.id);
+      const pos = spreadPos[i];
+
+      // Start from off-screen
+      const startX = comp.startPos.x + window.innerWidth/2;
+      const startY = comp.startPos.y + window.innerHeight/2;
+      el.style.transition = 'none';
+      el.style.left  = startX + 'px';
+      el.style.top   = startY + 'px';
+      el.style.transform = 'translate(-50%,-50%) scale(0.3) rotate(-15deg)';
+      el.style.opacity = '0';
+
+      // Fly to spread position
+      scheduleTimeout(() => {
+        el.style.transition = 'all 0.9s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        el.style.left  = pos.x + 'px';
+        el.style.top   = pos.y + 'px';
+        el.style.transform = 'translate(-50%,-50%) scale(1) rotate(0deg)';
+        el.style.opacity = '1';
+        setProgress(10 + i * 4);
+      }, 80);
+    }, 800 + i * 220);
+  });
+
+  // ── PHASE 2: Connections appear ──────────────────────────
+  scheduleTimeout(() => {
+    document.getElementById('stage-label-text').textContent = 'PHASE 02';
+    document.getElementById('stage-main-text').textContent = 'MAPPING CONNECTIONS';
+    document.getElementById('sl-num').textContent = '02';
+    document.getElementById('sl-text').textContent = 'WIRING';
+    setDot(0, 'done'); setDot(1, 'active');
+    setProgress(45);
+    flashBanner('PHASE 02 — WIRING');
+    drawConnections(spreadPos);
+  }, 800 + components.length * 220 + 600);
+
+  // ── PHASE 3: Components zoom to center ───────────────────
+  const flyStartTime = 800 + components.length * 220 + 2200;
+
+  scheduleTimeout(() => {
+    document.getElementById('stage-label-text').textContent = 'PHASE 03';
+    document.getElementById('stage-main-text').textContent = 'ASSEMBLING';
+    document.getElementById('sl-num').textContent = '03';
+    document.getElementById('sl-text').textContent = 'ASSEMBLY';
+    setDot(1, 'done'); setDot(2, 'active');
+    setProgress(55);
+    flashBanner('PHASE 03 — ASSEMBLY');
+
+    // Hide connection lines
+    document.getElementById('connection-svg').classList.remove('show');
+
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+
+    components.forEach((comp, i) => {
+      scheduleTimeout(() => {
+        const el = document.getElementById('comp-' + comp.id);
+        el.style.transition = 'all 0.7s cubic-bezier(0.55, 0, 1, 0.45)';
+        el.style.left  = cx + 'px';
+        el.style.top   = cy + 'px';
+        el.style.transform = 'translate(-50%,-50%) scale(0.1)';
+        el.style.opacity = '0.3';
+
+        // Spark effect on arrival
+        scheduleTimeout(() => {
+          spawnSparks(cx, cy, 8);
+          setProgress(58 + i * 2);
+        }, 650);
+
+        // Fade out completely
+        scheduleTimeout(() => {
+          el.style.opacity = '0';
+        }, 750);
+
+      }, i * 120);
+    });
+  }, flyStartTime);
+
+  // ── PHASE 4: Final device assembles ─────────────────────
+  const deviceRevealTime = flyStartTime + components.length * 120 + 800;
+
+  scheduleTimeout(() => {
+    document.getElementById('stage-label-text').textContent = 'PHASE 04';
+    document.getElementById('stage-main-text').textContent = 'INTEGRATION';
+    document.getElementById('sl-num').textContent = '04';
+    document.getElementById('sl-text').textContent = 'INTEGRATION';
+    setDot(2, 'done'); setDot(3, 'active');
+    setProgress(80);
+
+    // Big glow burst at center
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+    glowBurst(cx, cy, 200);
+    spawnSparks(cx, cy, 24);
+
+    // Show assembly stage
+    const assemblyStage = document.getElementById('assembly-stage');
+    assemblyStage.classList.add('visible');
+
+    scheduleTimeout(() => {
+      const device = document.getElementById('final-device');
+      device.classList.add('assembled');
+      flashBanner('AETHER-FLOW ASSEMBLED');
+      setProgress(90);
+
+      // Multiple spark bursts
+      for (let i = 0; i < 3; i++) {
+        scheduleTimeout(() => {
+          spawnSparks(cx + (Math.random()-0.5)*200, cy + (Math.random()-0.5)*100, 10);
+          glowBurst(cx, cy, 150);
+        }, i * 300);
+      }
+    }, 300);
+  }, deviceRevealTime);
+
+  // ── PHASE 5: Info panel + final reveal ───────────────────
+  scheduleTimeout(() => {
+    document.getElementById('stage-label-text').textContent = 'PHASE 05';
+    document.getElementById('stage-main-text').textContent = 'OPERATIONAL';
+    document.getElementById('sl-num').textContent = '05';
+    document.getElementById('sl-text').textContent = 'OPERATIONAL';
+    setDot(3, 'done'); setDot(4, 'active');
+    setProgress(100);
+    flashBanner('SYSTEM ONLINE');
+
+    // Show info panel
+    const infoPanel = document.getElementById('info-panel');
+    infoPanel.classList.add('visible');
+
+    // Stagger info rows
+    [1,2,3,4,5,6].forEach((n, i) => {
+      scheduleTimeout(() => {
+        document.getElementById('ir'+n).classList.add('show');
+      }, i * 180);
+    });
+
+    // Final text
+    scheduleTimeout(() => {
+      document.getElementById('final-text').classList.add('show');
+      document.getElementById('restart-btn').classList.add('show');
+      setDot(4, 'done');
+    }, 1200);
+
+  }, deviceRevealTime + 2000);
+}
+
+// ── Restart ──────────────────────────────────────────────────
+function restartAnimation() {
+  clearAllTimeouts();
+
+  // Reset everything
+  document.getElementById('stage-title').style.opacity = '0';
+  document.getElementById('stage-label').style.opacity = '0';
+  document.getElementById('assembly-stage').classList.remove('visible');
+  document.getElementById('final-device').classList.remove('assembled');
+  document.getElementById('info-panel').classList.remove('visible');
+  document.getElementById('final-text').classList.remove('show');
+  document.getElementById('restart-btn').classList.remove('show');
+  document.getElementById('connection-svg').classList.remove('show');
+  document.getElementById('connection-svg').innerHTML = '';
+  document.getElementById('progress-fill').style.width = '0%';
+  document.getElementById('final-text').classList.remove('show');
+  [0,1,2,3,4].forEach(i => setDot(i, ''));
+  [1,2,3,4,5,6].forEach(n => document.getElementById('ir'+n).classList.remove('show'));
+
+  // Remove old components
+  compElements.forEach(el => el.remove());
+  compElements = [];
+
+  // Recreate and restart
+  setTimeout(() => {
+    createComponents();
+    startAnimation();
+  }, 200);
+}
+
+// ── Init ─────────────────────────────────────────────────────
+createComponents();
+startAnimation();
+</script>
+</body>
+</html>
