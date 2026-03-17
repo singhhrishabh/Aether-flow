@@ -33,6 +33,15 @@ Open any of these files directly in your browser — no server needed:
 | `simulation/AetherFlow_LayerAnimation.html` | 6-layer architecture walkthrough |
 
 ---
+Link to every working simulation:
+
+| Link | What it shows |
+|---|---|
+| `https://singhhrishabh.github.io/Aether-flow/simulation/AetherFlow_WorkingModel.html` | Full live AI dashboard with thermal camera, prediction timeline, Peltier control |
+| `https://singhhrishabh.github.io/Aether-flow/simulation/AetherFlow_HowItWorks.html` | Animated explainer of the full system |
+| `https://singhhrishabh.github.io/Aether-flow/simulation/AetherFlow_Assembly.html` | 3D assembly animation |
+| `https://singhhrishabh.github.io/Aether-flow/simulation/AetherFlow_LayerAnimation.html` | 6-layer architecture walkthrough |
+
 
 ## How It Works — 3 Steps
 
