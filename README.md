@@ -31,6 +31,7 @@ Open any of these files directly in your browser — no server needed:
 | `simulation/AetherFlow_HowItWorks.html` | Animated explainer of the full system |
 | `simulation/AetherFlow_Assembly.html` | 3D assembly animation |
 | `simulation/AetherFlow_LayerAnimation.html` | 6-layer architecture walkthrough |
+| `simulation/.html` | 3D view with components |
 
 ---
 Link to every working simulation:
@@ -41,6 +42,7 @@ Link to every working simulation:
 | `https://singhhrishabh.github.io/Aether-flow/simulation/AetherFlow_HowItWorks.html` | Animated explainer of the full system |
 | `https://singhhrishabh.github.io/Aether-flow/simulation/AetherFlow_Assembly.html` | 3D assembly animation |
 | `https://singhhrishabh.github.io/Aether-flow/simulation/AetherFlow_LayerAnimation.html` | 6-layer architecture walkthrough |
+| `simulation/.html` | 3D view with components |
 
 
 ## How It Works — 3 Steps
