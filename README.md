@@ -147,6 +147,7 @@ aether-flow/
     ├── AetherFlow_HowItWorks.html
     ├── AetherFlow_Assembly.html
     └── AetherFlow_LayerAnimation.html
+    └── 3D view with components
 ```
 
 ---
