@@ -187,6 +187,6 @@ BITS Pilani Dubai Campus, Academic City, Dubai, UAE
 [rishabh.s0072@gmail.com] 
 
 *Seeking research supervision and lab access to build and validate
-the physical prototype. Full project proposal in `docs/` folder.*
+the physical prototype.*
 
 ---
