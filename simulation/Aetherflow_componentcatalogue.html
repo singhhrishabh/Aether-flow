@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aether-Flow — Interactive Component Catalogue</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#05090f;
+  --panel:#080e18;
+  --border:rgba(255,255,255,0.06);
+  --teal:#14d9c4;
+  --white:#ddeef2;
+  --muted:#3a5a6a;
+  --text:#7a9daa;
+  --h:var(--font-head);
+  --m:var(--font-mono);
+  --b:var(--font-body);
+  --font-head:'Orbitron',sans-serif;
+  --font-mono:'Share Tech Mono',monospace;
+  --font-body:'Rajdhani',sans-serif;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--white);font-family:var(--font-body);cursor:none;}
+ 
+/* cursor */
+#cur{position:fixed;width:8px;height:8px;border:1.5px solid var(--teal);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:screen;transition:transform .12s,opacity .12s;}
+body:has(.cat-row:hover) #cur{transform:translate(-50%,-50%) scale(2);opacity:.5;}
+ 
+/* ══ LAYOUT ══════════════════════════════ */
+#shell{
+  display:grid;
+  grid-template-columns:280px 1fr;
+  grid-template-rows:48px 1fr;
+  height:100vh;
+}
+ 
+/* ── TOP BAR ── */
+#topbar{
+  grid-column:1/-1;
+  background:rgba(5,9,15,.97);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;
+  z-index:200;
+}
+.tb-brand{font-family:var(--h);font-size:13px;font-weight:900;letter-spacing:5px;}
+.tb-brand em{color:var(--teal);font-style:normal;}
+.tb-center{font-family:var(--m);font-size:8px;color:var(--muted);letter-spacing:4px;}
+.tb-right{font-family:var(--m);font-size:8px;color:var(--muted);letter-spacing:2px;}
+ 
+/* ── LEFT CATALOGUE ── */
+#catalogue{
+  background:var(--panel);
+  border-right:1px solid var(--border);
+  overflow-y:auto;
+  display:flex;flex-direction:column;
+}
+#catalogue::-webkit-scrollbar{width:2px;}
+#catalogue::-webkit-scrollbar-thumb{background:rgba(20,217,196,.15);}
+ 
+.cat-group-label{
+  font-family:var(--m);font-size:7px;letter-spacing:4px;
+  color:var(--teal);padding:14px 16px 6px;
+  border-bottom:1px solid var(--border);
+  background:rgba(20,217,196,.02);
+  position:sticky;top:0;z-index:5;
+  backdrop-filter:blur(8px);
+}
+ 
+.cat-row{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 16px;
+  border-bottom:1px solid var(--border);
+  cursor:pointer;
+  transition:background .2s;
+  border-left:2px solid transparent;
+  position:relative;
+  overflow:hidden;
+}
+.cat-row::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(20,217,196,.04));
+  opacity:0;transition:opacity .2s;
+}
+.cat-row:hover{background:rgba(20,217,196,.03);}
+.cat-row:hover::after{opacity:1;}
+.cat-row.selected{
+  background:rgba(20,217,196,.06);
+  border-left-color:var(--teal);
+}
+.cat-row.selected .cr-name{color:var(--teal);}
+ 
+.cr-indicator{
+  width:6px;height:6px;border-radius:50%;
+  flex-shrink:0;transition:box-shadow .3s;
+}
+.cat-row.selected .cr-indicator{
+  box-shadow:0 0 8px currentColor;
+}
+.cr-body{flex:1;min-width:0;}
+.cr-name{font-family:var(--m);font-size:10px;letter-spacing:1px;margin-bottom:1px;transition:color .2s;}
+.cr-role{font-family:var(--b);font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cr-price{font-family:var(--h);font-size:9px;color:var(--muted);flex-shrink:0;transition:color .2s;}
+.cat-row.selected .cr-price{color:rgba(52,211,153,.8);}
+ 
+/* arrow indicator */
+.cr-arrow{font-size:10px;color:var(--muted);opacity:0;flex-shrink:0;transition:opacity .2s,transform .2s;}
+.cat-row.selected .cr-arrow{opacity:1;transform:translateX(2px);color:var(--teal);}
+ 
+/* BOM total */
+#bom-total{
+  margin-top:auto;
+  padding:14px 16px;
+  border-top:1px solid rgba(20,217,196,.1);
+  background:rgba(20,217,196,.02);
+}
+.bom-label{font-family:var(--m);font-size:7px;color:var(--muted);letter-spacing:4px;margin-bottom:4px;}
+.bom-val{font-family:var(--h);font-size:18px;font-weight:900;color:#34d399;}
+ 
+/* ── CENTER — 3D VIEWPORT ── */
+#viewport{
+  position:relative;overflow:hidden;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 55%,rgba(13,148,136,.05),transparent),
+    var(--bg);
+}
+canvas#c{position:absolute;inset:0;width:100%!important;height:100%!important;}
+ 
+/* grid bg */
+#viewport::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:1;
+  background-image:
+    linear-gradient(rgba(20,217,196,.018) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(20,217,196,.018) 1px,transparent 1px);
+  background-size:50px 50px;
+}
+ 
+/* idle prompt */
+#vp-idle{
+  position:absolute;inset:0;z-index:3;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;pointer-events:none;transition:opacity .6s;
+}
+#vp-idle.hidden{opacity:0;}
+.vp-idle-line{font-family:var(--m);font-size:9px;color:var(--muted);letter-spacing:4px;}
+ 
+/* camera hint */
+#cam-hint{
+  position:absolute;top:12px;right:14px;z-index:10;
+  font-family:var(--m);font-size:7px;color:rgba(58,90,106,.7);
+  letter-spacing:2px;line-height:2;text-align:right;pointer-events:none;
+}
+ 
+/* ── CALLOUT LINE from 3D component to edge ── */
+#callout-layer{position:absolute;inset:0;z-index:5;pointer-events:none;}
+#callout-svg{width:100%;height:100%;position:absolute;inset:0;}
+ 
+/* ── BOTTOM DETAIL DRAWER ── */
+#drawer{
+  position:absolute;bottom:0;left:0;right:0;z-index:20;
+  background:rgba(5,9,15,.97);
+  border-top:1px solid var(--border);
+  backdrop-filter:blur(20px);
+  transform:translateY(100%);
+  transition:transform .45s cubic-bezier(.25,.46,.45,.94);
+  max-height:46%;
+  overflow:hidden;
+}
+#drawer.open{transform:translateY(0);}
+ 
+#drawer-inner{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:0;
+  height:100%;
+}
+ 
+.d-section{
+  padding:18px 22px;
+  border-right:1px solid var(--border);
+  overflow-y:auto;
+}
+.d-section:last-child{border-right:none;}
+.d-section::-webkit-scrollbar{width:2px;}
+.d-section::-webkit-scrollbar-thumb{background:rgba(20,217,196,.15);}
+ 
+.d-sec-title{
+  font-family:var(--m);font-size:7px;letter-spacing:4px;
+  color:var(--teal);margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;
+}
+.d-sec-title::after{content:'';flex:1;height:1px;background:rgba(20,217,196,.1);}
+ 
+/* Section 1 — Component ID */
+#d-comp-name{font-family:var(--h);font-size:20px;font-weight:900;margin-bottom:4px;line-height:1.1;}
+#d-comp-tagline{font-family:var(--b);font-size:14px;color:var(--text);margin-bottom:14px;}
+.d-badge{display:inline-block;font-family:var(--m);font-size:8px;letter-spacing:2px;
+  padding:3px 10px;border-radius:2px;border:1px solid;margin-bottom:10px;}
+.d-spec-row{display:flex;justify-content:space-between;align-items:center;
+  padding:5px 0;border-bottom:1px solid var(--border);}
+.d-spec-row:last-child{border-bottom:none;}
+.dsr-k{font-family:var(--b);font-size:12px;color:var(--muted);}
+.dsr-v{font-family:var(--m);font-size:10px;}
+ 
+/* Section 2 — Location */
+.loc-card{
+  border-radius:8px;padding:14px;border:1px solid;
+  margin-bottom:12px;background:rgba(20,217,196,.03);
+}
+.loc-card-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.loc-icon{font-size:22px;}
+.loc-position{font-family:var(--m);font-size:10px;letter-spacing:1px;}
+.loc-desc{font-family:var(--b);font-size:13px;color:var(--text);line-height:1.5;margin-top:6px;}
+ 
+/* Section 3 — Why / Importance */
+#d-why-text{font-family:var(--b);font-size:14px;color:var(--white);line-height:1.7;margin-bottom:14px;}
+.d-importance{
+  border-radius:6px;padding:10px 14px;
+  border-left:3px solid;
+  background:rgba(20,217,196,.03);
+  font-family:var(--b);font-size:13px;color:var(--text);
+  line-height:1.5;
+}
+ 
+/* close drawer btn */
+#drawer-close{
+  position:absolute;top:10px;right:14px;z-index:30;
+  background:transparent;border:1px solid var(--border);
+  color:var(--muted);font-family:var(--m);font-size:9px;letter-spacing:2px;
+  padding:4px 12px;cursor:pointer;border-radius:2px;
+  transition:all .2s;
+}
+#drawer-close:hover{border-color:var(--teal);color:var(--teal);}
+ 
+/* ── LOADER ── */
+#loader{position:fixed;inset:0;z-index:999;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  transition:opacity .5s;}
+#loader.gone{opacity:0;pointer-events:none;}
+.ld-brand{font-family:var(--h);font-size:22px;font-weight:900;letter-spacing:6px;}
+.ld-brand em{color:var(--teal);font-style:normal;}
+.ld-track{width:160px;height:1px;background:rgba(20,217,196,.12);}
+.ld-fill{height:100%;background:var(--teal);width:0%;transition:width .08s;box-shadow:0 0 6px var(--teal);}
+.ld-msg{font-family:var(--m);font-size:8px;color:var(--muted);letter-spacing:4px;}
+</style>
+</head>
+<body>
+<div id="cur"></div>
+ 
+<!-- LOADER -->
+<div id="loader">
+  <div class="ld-brand">AETHER<em>-FLOW</em></div>
+  <div class="ld-track"><div class="ld-fill" id="ldf"></div></div>
+  <div class="ld-msg" id="ldm">INITIALISING...</div>
+</div>
+ 
+<div id="shell">
+ 
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div class="tb-brand">AETHER<em>-FLOW</em></div>
+    <div class="tb-center">INTERACTIVE COMPONENT CATALOGUE</div>
+    <div class="tb-right">SELECT A COMPONENT TO EXPLORE</div>
+  </div>
+ 
+  <!-- LEFT CATALOGUE -->
+  <div id="catalogue">
+ 
+    <div class="cat-group-label">◈ PERCEPTION LAYER</div>
+    <div class="cat-row" data-id="tmp117" onclick="pick('tmp117')">
+      <div class="cr-indicator" style="background:#f59e0b;color:#f59e0b"></div>
+      <div class="cr-body"><div class="cr-name">TMP117 ×6</div><div class="cr-role">Precision Temp Sensor</div></div>
+      <div class="cr-price">₹450</div><div class="cr-arrow">›</div>
+    </div>
+    <div class="cat-row" data-id="mlx" onclick="pick('mlx')">
+      <div class="cr-indicator" style="background:#f43f5e;color:#f43f5e"></div>
+      <div class="cr-body"><div class="cr-name">MLX90640</div><div class="cr-role">IR Thermal Camera</div></div>
+      <div class="cr-price">₹2,000</div><div class="cr-arrow">›</div>
+    </div>
+    <div class="cat-row" data-id="ina226" onclick="pick('ina226')">
+      <div class="cr-indicator" style="background:#34d399;color:#34d399"></div>
+      <div class="cr-body"><div class="cr-name">INA226 ×4</div><div class="cr-role">Power Monitor</div></div>
+      <div class="cr-price">₹320</div><div class="cr-arrow">›</div>
+    </div>
+    <div class="cat-row" data-id="sht40" onclick="pick('sht40')">
+      <div class="cr-indicator" style="background:#60a5fa;color:#60a5fa"></div>
+      <div class="cr-body"><div class="cr-name">SHT40</div><div class="cr-role">Humidity Sensor</div></div>
+      <div class="cr-price">₹480</div><div class="cr-arrow">›</div>
+    </div>
+ 
+    <div class="cat-group-label">◈ INTELLIGENCE LAYER</div>
+    <div class="cat-row" data-id="pi5" onclick="pick('pi5')">
+      <div class="cr-indicator" style="background:#818cf8;color:#818cf8"></div>
+      <div class="cr-body"><div class="cr-name">Raspberry Pi 5</div><div class="cr-role">AI Compute Brain</div></div>
+      <div class="cr-price">₹8,000</div><div class="cr-arrow">›</div>
+    </div>
+    <div class="cat-row" data-id="esp32" onclick="pick('esp32')">
+      <div class="cr-indicator" style="background:#14d9c4;color:#14d9c4"></div>
+      <div class="cr-body"><div class="cr-name">ESP32-WROOM-32</div><div class="cr-role">Real-Time Controller</div></div>
+      <div class="cr-price">₹300</div><div class="cr-arrow">›</div>
+    </div>
+ 
+    <div class="cat-group-label">◈ ACTUATION LAYER</div>
+    <div class="cat-row" data-id="peltier" onclick="pick('peltier')">
+      <div class="cr-indicator" style="background:#14d9c4;color:#14d9c4"></div>
+      <div class="cr-body"><div class="cr-name">TEC1-12706 ×4</div><div class="cr-role">Peltier Module</div></div>
+      <div class="cr-price">₹680</div><div class="cr-arrow">›</div>
+    </div>
+    <div class="cat-row" data-id="coldplate" onclick="pick('coldplate')">
+      <div class="cr-indicator" style="background:#94a3b8;color:#94a3b8"></div>
+      <div class="cr-body"><div class="cr-name">Cold Plate</div><div class="cr-role">Microfluidic Interface</div></div>
+      <div class="cr-price">₹1,200</div><div class="cr-arrow">›</div>
+    </div>
+    <div class="cat-row" data-id="pump" onclick="pick('pump')">
+      <div class="cr-indicator" style="background:#fb923c;color:#fb923c"></div>
+      <div class="cr-body"><div class="cr-name">Kamoer NKP</div><div class="cr-role">Micro Pump</div></div>
+      <div class="cr-price">₹2,200</div><div class="cr-arrow">›</div>
+    </div>
+    <div class="cat-row" data-id="fans" onclick="pick('fans')">
+      <div class="cr-indicator" style="background:#60a5fa;color:#60a5fa"></div>
+      <div class="cr-body"><div class="cr-name">Noctua NF-A12 ×2</div><div class="cr-role">PWM Exhaust Fan</div></div>
+      <div class="cr-price">₹3,600</div><div class="cr-arrow">›</div>
+    </div>
+    <div class="cat-row" data-id="mosfet" onclick="pick('mosfet')">
+      <div class="cr-indicator" style="background:#f59e0b;color:#f59e0b"></div>
+      <div class="cr-body"><div class="cr-name">IRF540N ×4</div><div class="cr-role">Power MOSFET Switch</div></div>
+      <div class="cr-price">₹160</div><div class="cr-arrow">›</div>
+    </div>
+ 
+    <div class="cat-group-label">◈ SAFETY LAYER</div>
+    <div class="cat-row" data-id="relay" onclick="pick('relay')">
+      <div class="cr-indicator" style="background:#f43f5e;color:#f43f5e"></div>
+      <div class="cr-body"><div class="cr-name">Safety Relay</div><div class="cr-role">Hardware Cutoff</div></div>
+      <div class="cr-price">₹120</div><div class="cr-arrow">›</div>
+    </div>
+ 
+    <div class="cat-group-label">◈ STRUCTURE</div>
+    <div class="cat-row" data-id="enclosure" onclick="pick('enclosure')">
+      <div class="cr-indicator" style="background:#94a3b8;color:#94a3b8"></div>
+      <div class="cr-body"><div class="cr-name">AL 6061 Enclosure</div><div class="cr-role">CNC Anodised Housing</div></div>
+      <div class="cr-price">₹1,800</div><div class="cr-arrow">›</div>
+    </div>
+ 
+    <div id="bom-total">
+      <div class="bom-label">TOTAL BOM COST</div>
+      <div class="bom-val">≈ ₹15,000</div>
+    </div>
+  </div>
+ 
+  <!-- CENTER VIEWPORT -->
+  <div id="viewport">
+    <canvas id="c"></canvas>
+    <div id="callout-layer">
+      <svg id="callout-svg" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L6,3 z" fill="#14d9c4" opacity=".6"/>
+          </marker>
+        </defs>
+        <line id="callout-line" x1="0" y1="0" x2="0" y2="0"
+          stroke="#14d9c4" stroke-width="1" stroke-dasharray="4,3" opacity="0"
+          marker-end="url(#arrowhead)"/>
+        <circle id="callout-dot" cx="0" cy="0" r="5"
+          fill="none" stroke="#14d9c4" stroke-width="1.5" opacity="0"/>
+      </svg>
+    </div>
+    <div id="vp-idle">
+      <div class="vp-idle-line">← SELECT A COMPONENT</div>
+      <div class="vp-idle-line" style="opacity:.4;font-size:7px">DRAG TO ROTATE · SCROLL TO ZOOM</div>
+    </div>
+    <div id="cam-hint">DRAG ROTATE<br>SCROLL ZOOM</div>
+ 
+    <!-- DRAWER -->
+    <div id="drawer">
+      <button id="drawer-close" onclick="closePick()">✕ CLOSE</button>
+      <div id="drawer-inner">
+ 
+        <!-- Column 1: Component ID + specs -->
+        <div class="d-section">
+          <div class="d-sec-title">COMPONENT</div>
+          <div id="d-comp-name"></div>
+          <div id="d-comp-tagline"></div>
+          <div id="d-badge" class="d-badge"></div>
+          <div id="d-specs"></div>
+        </div>
+ 
+        <!-- Column 2: Where it is fitted -->
+        <div class="d-section">
+          <div class="d-sec-title">WHERE IT IS FITTED</div>
+          <div id="d-location"></div>
+        </div>
+ 
+        <!-- Column 3: Why used + importance -->
+        <div class="d-section">
+          <div class="d-sec-title">WHY IT IS USED</div>
+          <div id="d-why-text"></div>
+          <div id="d-importance" class="d-importance"></div>
+        </div>
+ 
+      </div>
+    </div>
+  </div>
+ 
+</div><!-- /shell -->
+ 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ═══════════════════════════════════════════
+   CURSOR
+═══════════════════════════════════════════ */
+const cur=document.getElementById('cur');
+document.addEventListener('mousemove',e=>{cur.style.left=e.clientX+'px';cur.style.top=e.clientY+'px';});
+ 
+/* ═══════════════════════════════════════════
+   LOADER
+═══════════════════════════════════════════ */
+let lp=0;
+const li=setInterval(()=>{
+  lp+=Math.random()*14+7;if(lp>100)lp=100;
+  document.getElementById('ldf').style.width=lp+'%';
+  document.getElementById('ldm').textContent=['INITIALISING...','BUILDING MODEL...','PLACING COMPONENTS...','READY'][Math.min(Math.floor(lp/26),3)];
+  if(lp>=100){clearInterval(li);setTimeout(()=>document.getElementById('loader').classList.add('gone'),400);}
+},80);
+ 
+/* ═══════════════════════════════════════════
+   COMPONENT DATABASE
+═══════════════════════════════════════════ */
+const DB={
+  tmp117:{
+    name:'TMP117',tagline:'High-Precision Temperature Sensor × 6',
+    layer:'PERCEPTION',color:'#f59e0b',
+    specs:[['Accuracy','±0.1°C'],['Interface','I2C'],['Range','−55 to +150°C'],['Qty','6 units'],['Voltage','1.8–5.5V']],
+    locIcon:'📍',locPosition:'6 positions on cold plate surface',
+    locDesc:'Placed at chip center, memory zone, VRM area, intake air, exhaust air, and cold plate surface. Wired to ESP32 GPIO 21/22 via I2C bus.',
+    why:'Conventional coolers use one sensor and guess everything else. Six TMP117s give the AI a live thermal map — it knows exactly which zone is overheating, not just a single average reading.',
+    importance:'At ±0.1°C accuracy it catches a 0.2°C rise that signals a workload spike 10 seconds away — this is the raw data the AI needs to predict the future.',
+    store:'evelta.com / robu.in',price:'₹450 each'
+  },
+  mlx:{
+    name:'MLX90640',tagline:'32×24 Infrared Thermal Camera',
+    layer:'PERCEPTION',color:'#f43f5e',
+    specs:[['Resolution','32×24 (768 pts)'],['Accuracy','±1.5°C'],['Frame rate','Up to 64 Hz'],['Interface','I2C'],['FOV','110°×75°']],
+    locIcon:'🎥',locPosition:'Mounted overhead — facing chip surface',
+    locDesc:'Positioned above the cold plate, angled downward to capture the full chip footprint. Connects to ESP32 I2C bus alongside TMP117 sensors.',
+    why:'Point sensors only see one spot. The MLX90640 delivers 768 individual temperature readings per frame — a real thermal image showing where hotspots form and how they spread.',
+    importance:'No other cooling system at device-scale has this. It lets the AI see which corner of the chip is heating asymmetrically and target that exact zone with more cooling power.',
+    store:'Amazon India',price:'₹1,800–2,200'
+  },
+  ina226:{
+    name:'INA226',tagline:'High-Precision Power Monitor × 4',
+    layer:'PERCEPTION',color:'#34d399',
+    specs:[['Accuracy','±0.1%'],['Interface','I2C (0x40–0x43)'],['Voltage range','0–36V'],['Current','Up to 3.2A / ch'],['Resolution','16-bit']],
+    locIcon:'⚡',locPosition:'In-line with each Peltier power rail',
+    locDesc:'One INA226 placed in the 12V supply line to each of the four Peltier modules, measuring exact voltage and current independently.',
+    why:'Power consumption rises 2–3 seconds before temperature sensors register heat. When a CPU suddenly draws 30W more, the INA226 catches it instantly — before the chip warms up.',
+    importance:'This early warning is the core of predictive cooling. The AI uses power-spike data to begin pre-cooling during those 2–3 second windows — no other cooler does this.',
+    store:'robu.in',price:'₹280–320 each'
+  },
+  sht40:{
+    name:'SHT40',tagline:'Humidity & Temperature Sensor',
+    layer:'PERCEPTION',color:'#60a5fa',
+    specs:[['Humidity accuracy','±1.8% RH'],['Temp accuracy','±0.2°C'],['Interface','I2C'],['Response','~4 seconds'],['Range','0–100% RH']],
+    locIcon:'💧',locPosition:'Inside enclosure — ambient air measurement',
+    locDesc:'Positioned in the internal airspace near the cold plate edge to continuously measure ambient humidity and temperature.',
+    why:'Peltier modules chill surfaces below room temperature. If that surface drops below the dew point, water condenses on the electronics and destroys them instantly.',
+    importance:'The SHT40 is the condensation firewall. If the cold plate approaches dew point within 5°C, the AI automatically backs off cooling — this one sensor prevents catastrophic hardware failure.',
+    store:'robu.in',price:'₹420–480'
+  },
+  pi5:{
+    name:'Raspberry Pi 5',tagline:'Primary AI Compute — 4GB RAM',
+    layer:'INTELLIGENCE',color:'#818cf8',
+    specs:[['CPU','Cortex-A76 quad @ 2.4GHz'],['RAM','4GB LPDDR4X'],['AI inference','< 30ms'],['Storage','MicroSD 64GB+'],['Power','5V / 5A USB-C']],
+    locIcon:'🧠',locPosition:'Top-right zone — main compute board',
+    locDesc:'Mounted on the right side of the PCB, connected to ESP32 via USB serial cable at 115,200 baud. Receives JSON telemetry every 500ms and returns AI commands.',
+    why:'Every other cooling system offloads intelligence to the cloud or has no intelligence at all. The Pi 5 runs the full TFT + PPO AI stack on-device — no internet, no latency, no cloud dependency.',
+    importance:'At 2.4GHz quad-core it completes full AI inference in under 30ms — faster than any cloud round-trip. This is what makes Aether-Flow work in factories, cars, and offline labs.',
+    store:'thinkrobotics.com',price:'₹7,500–8,500'
+  },
+  esp32:{
+    name:'ESP32-WROOM-32',tagline:'Real-Time PWM Controller',
+    layer:'INTELLIGENCE',color:'#14d9c4',
+    specs:[['CPU','Dual Xtensa LX6 @ 240MHz'],['RAM','520KB SRAM'],['PWM','4 × 25kHz channels'],['Interface','I2C + UART + GPIO'],['Power','3.3V / ~240mA']],
+    locIcon:'⚙️',locPosition:'Adjacent to Pi — sensor hub & PWM driver',
+    locDesc:'Sits beside the Raspberry Pi, serving as the real-time bridge between all I2C sensors and the PWM-driven actuators. Connected to Pi via USB and to sensors via I2C on GPIO 21/22.',
+    why:'Linux on the Pi introduces scheduling jitter — it cannot guarantee microsecond-precise PWM output. The ESP32 handles all time-critical tasks without an OS getting in the way.',
+    importance:'If the Pi crashes or goes silent for 2 seconds, the ESP32 automatically switches to its own hardware PID controller and keeps cooling independently. The system cannot fail dangerously.',
+    store:'robu.in',price:'₹250–350'
+  },
+  peltier:{
+    name:'TEC1-12706',tagline:'Thermoelectric Peltier Module × 4',
+    layer:'ACTUATION',color:'#14d9c4',
+    specs:[['Max voltage','12V'],['Max current','6A'],['Max power','60W'],['ΔT max','68°C'],['Size','40×40×4mm']],
+    locIcon:'❄️',locPosition:'2×2 grid beneath cold plate',
+    locDesc:'Four modules arranged in a 2×2 grid sandwiched between the cold plate bottom face and the heat spreader. Each is driven independently via its own MOSFET and PWM channel.',
+    why:'Solid-state heat pumps with no moving parts and no refrigerant. Apply electricity — one face goes cold, the other expels heat. PWM control from 0–100% gives the AI continuous, precise output.',
+    importance:'Four independent zones mean the AI can cool the CPU corner harder than the memory corner. No single-unit cooler can do spatial targeting — this is what makes ±0.3°C stability achievable.',
+    store:'robu.in / robocraze.com',price:'₹170 each'
+  },
+  coldplate:{
+    name:'AL 6061 Cold Plate',tagline:'CNC Microfluidic Heat Interface',
+    layer:'ACTUATION',color:'#94a3b8',
+    specs:[['Material','AL 6061-T6'],['Channel width','0.5mm precision milled'],['Conductivity','167 W/m·K'],['Surface','Ra 0.4μm lapped'],['Size','~80×80mm']],
+    locIcon:'🧊',locPosition:'Direct contact with chip — device center',
+    locDesc:'Clamped directly onto the chip package with thermal paste. The four Peltier modules bond to its underside. Coolant from the pump flows through internal microchannels.',
+    why:'Without the cold plate, four Peltier modules create four cold spots with hot zones between them. The cold plate merges them into a single uniform cold face across the entire chip.',
+    importance:'The 0.5mm microchannels distribute coolant flow precisely, eliminating thermal gradients. This is what converts four discrete cooling points into the ±0.3°C surface uniformity Aether-Flow achieves.',
+    store:'Local machine shop (Lucknow)',price:'₹1,000–1,400'
+  },
+  pump:{
+    name:'Kamoer NKP',tagline:'Variable Speed Peristaltic Micro Pump',
+    layer:'ACTUATION',color:'#fb923c',
+    specs:[['Flow rate','0–5 mL/min variable'],['Control','PWM speed input'],['Head','0.5m H₂O'],['Noise','< 35dB @ full speed'],['Power','5V DC']],
+    locIcon:'🔄',locPosition:'Left rear corner — drives microfluidic loop',
+    locDesc:'Mounted in the rear-left zone, connected to cold plate inlet and heat exchanger outlet with silicone micro-tubing. Speed controlled by ESP32 PWM output.',
+    why:'Fixed-speed pumps waste energy at idle and struggle at peak. The Kamoer NKP runs at exactly the flow rate the AI prescribes — 20% at idle, 100% at full load.',
+    importance:'This variable control is responsible for 35–41% energy savings. The AI does not over-cool, over-pump, or over-fan. Every watt is used precisely where and when needed.',
+    store:'AliExpress / robocraze.com',price:'₹2,000–2,400'
+  },
+  fans:{
+    name:'Noctua NF-A12x25',tagline:'Premium PWM Exhaust Fan × 2',
+    layer:'ACTUATION',color:'#60a5fa',
+    specs:[['Speed range','300–2000 RPM'],['Noise','22.6 dB(A) max'],['Airflow','102.1 m³/h max'],['Control','4-pin PWM'],['Bearing','SSO2 fluid dynamic']],
+    locIcon:'🌀',locPosition:'Rear face — Peltier hot-side exhaust',
+    locDesc:'Two fans mounted on the rear exhaust panel, drawing hot air from the Peltier heat-spreader fins and pushing it out the back of the enclosure.',
+    why:'Peltier modules move heat — they do not destroy it. The hot side must actively dissipate to the environment. Without fans, hot-side temperature rises, cold-side efficiency collapses.',
+    importance:'Noctua was chosen specifically for 22.6 dB — barely audible. They run at 300 RPM (silent) at idle, only spinning up when Peltier output is high. This is why Aether-Flow achieves ~28dB total system noise.',
+    store:'Amazon India',price:'₹1,800 each'
+  },
+  mosfet:{
+    name:'IRF540N',tagline:'N-Channel Power MOSFET × 4',
+    layer:'ACTUATION',color:'#f59e0b',
+    specs:[['Max Vds','100V'],['Max current','33A'],['Rds(on)','44mΩ'],['Gate threshold','2–4V'],['Package','TO-220']],
+    locIcon:'🔌',locPosition:'PCB — between ESP32 GPIO and Peltier power line',
+    locDesc:'Four MOSFETs on the main PCB, each wired between an ESP32 PWM output pin and the 12V supply rail of one Peltier module.',
+    why:'The ESP32 outputs 3.3V logic. Peltier modules need 12V at up to 6A. Without MOSFETs the ESP32 would burn out instantly. The IRF540N switches the full 12V load using a tiny control signal.',
+    importance:'At 25,000 switches per second (25kHz PWM), the average power delivered to the Peltier is exactly proportional to the duty cycle the AI commands. This is what converts AI predictions into physical cooling.',
+    store:'robu.in / Aminabad market',price:'₹30–40 each'
+  },
+  relay:{
+    name:'12V Safety Relay',tagline:'Hardware Emergency Cutoff',
+    layer:'SAFETY',color:'#f43f5e',
+    specs:[['Coil voltage','12V DC'],['Contact rating','10A @ 250VAC'],['Response time','< 10ms'],['Control','GPIO32 digital'],['Type','SPDT normally open']],
+    locIcon:'🛡️',locPosition:'Main 12V rail — before all Peltier modules',
+    locDesc:'Wired in series with the 12V supply feeding all four Peltier modules. The ESP32 firmware holds it closed during normal operation via GPIO32.',
+    why:'Software can crash. Firmware can have bugs. The AI model can malfunction. The relay operates independently of all of them — it is a physical switch that fires based on hardware logic alone.',
+    importance:'This is the last line of defense. At >85°C or >60W, it opens and cuts all Peltier power in under 10ms — preventing thermal runaway, PCB damage, and fire risk. No software path can disable it.',
+    store:'robu.in',price:'₹80–120'
+  },
+  enclosure:{
+    name:'AL 6061 Enclosure',tagline:'CNC Anodised Aluminium Housing',
+    layer:'STRUCTURE',color:'#94a3b8',
+    specs:[['Dimensions','200 × 140 × 55mm'],['Material','AL 6061-T6 anodised'],['Conductivity','167 W/m·K'],['Weight','~180g body'],['Finish','Hard anodised dark']],
+    locIcon:'📦',locPosition:'Outer shell — contains all components',
+    locDesc:'200×140×55mm machined aluminium enclosure with teal accent rails, front I/O panel (USB-C, OLED, LEDs), and perforated rear exhaust grille.',
+    why:'Aluminium 6061 was chosen over plastic deliberately — it conducts heat through its walls, acting as a secondary passive heat spreader for the entire assembly.',
+    importance:'The enclosure is not just packaging — it is a structural thermal component. The teal anodised rails increase edge emissivity for radiative cooling. Every surface works.',
+    store:'Local machine shop (Lucknow)',price:'₹1,500–2,000'
+  },
+};
+ 
+/* ═══════════════════════════════════════════
+   THREE.JS SCENE
+═══════════════════════════════════════════ */
+const vp=document.getElementById('viewport');
+const renderer=new THREE.WebGLRenderer({canvas:document.getElementById('c'),antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.1;
+ 
+const scene=new THREE.Scene();
+scene.fog=new THREE.FogExp2(0x05090f,.025);
+ 
+const camera=new THREE.PerspectiveCamera(44,1,.1,200);
+camera.position.set(7,4,9);camera.lookAt(0,-.2,0);
+ 
+function resizeRenderer(){
+  const W=vp.clientWidth,H=vp.clientHeight;
+  renderer.setSize(W,H);
+  camera.aspect=W/H;camera.updateProjectionMatrix();
+}
+resizeRenderer();
+window.addEventListener('resize',resizeRenderer);
+ 
+// Lights
+const amb=new THREE.AmbientLight(0x0a1825,2.2);scene.add(amb);
+const key=new THREE.DirectionalLight(0x14d9c4,.6);key.position.set(6,10,6);key.castShadow=true;scene.add(key);
+const fill=new THREE.DirectionalLight(0x818cf8,.18);fill.position.set(-5,2,-4);scene.add(fill);
+const pt=new THREE.PointLight(0x14d9c4,.9,14);pt.position.set(0,.8,0);scene.add(pt);
+ 
+// Floor glow
+const fring=new THREE.Mesh(new THREE.RingGeometry(.4,3.5,64),
+  new THREE.MeshStandardMaterial({color:0x0d9488,emissive:0x0d9488,emissiveIntensity:.08,transparent:true,opacity:.18,side:THREE.DoubleSide}));
+fring.rotation.x=-Math.PI/2;fring.position.y=-1.45;scene.add(fring);
+ 
+// ── helpers ──────────────────────────────
+function bx(w,h,d,hex,met=.8,rou=.25,emi=0,ei=0,op=1,tr=false){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),
+    new THREE.MeshStandardMaterial({color:hex,metalness:met,roughness:rou,
+      emissive:emi,emissiveIntensity:ei,opacity:op,transparent:tr,
+      side:tr?THREE.DoubleSide:THREE.FrontSide}));
+  m.castShadow=true;m.receiveShadow=true;return m;
+}
+function sp(r,hex,emi=0,ei=0){
+  return new THREE.Mesh(new THREE.SphereGeometry(r,12,8),
+    new THREE.MeshStandardMaterial({color:hex,metalness:.1,roughness:.4,emissive:emi,emissiveIntensity:ei}));
+}
+function cy(r,h,hex,met=.8,rou=.2){
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,24),
+    new THREE.MeshStandardMaterial({color:hex,metalness:met,roughness:rou}));
+  m.castShadow=true;return m;
+}
+ 
+const group=new THREE.Group();scene.add(group);
+ 
+// Part registry: id → {meshes, centerPos, color}
+const PARTS={};
+function reg(id,meshes,cx,cy_,cz){
+  PARTS[id]={meshes,center:new THREE.Vector3(cx,cy_,cz)};
+  meshes.forEach(m=>group.add(m));
+}
+ 
+/* ── BUILD GEOMETRY ────────────────────── */
+ 
+// ENCLOSURE
+const eb=bx(4,.36,2.8,0x111e2a,.9,.22);eb.position.set(0,-.81,0);
+const et=bx(4,.09,2.8,0x1a2e40,.85,.2);et.position.set(0,.55,0);
+const ef=bx(.07,1.1,2.8,0x142030,.8,.25);ef.position.set(-2,-.24,0);
+const ebk=bx(.07,1.1,2.8,0x0d1820,.85,.2);ebk.position.set(2,-.24,0);
+const al=bx(4,.065,.065,0x14d9c4,.2,.4,0x0a5040,.5);al.position.set(0,.5,-1.43);
+const ar=bx(4,.065,.065,0x14d9c4,.2,.4,0x0a5040,.5);ar.position.set(0,.5,1.43);
+const oled=bx(1.16,.05,.3,0x001520,.1,.9,0x0a4040,.35);oled.position.set(-1.62,.52,.88);
+const og=new THREE.Mesh(new THREE.PlaneGeometry(1.14,.28),
+  new THREE.MeshStandardMaterial({color:0x14d9c4,emissive:0x14d9c4,emissiveIntensity:1.,transparent:true,opacity:.09,side:THREE.DoubleSide}));
+og.rotation.x=-Math.PI/2;og.position.set(-1.62,.56,.88);group.add(og);
+const leds=[0x14d9c4,0x34d399,0xf59e0b,0xf43f5e].map((c,i)=>{const l=sp(.04,c,c,2);l.position.set(-1.96,.52,1.08-i*.13);group.add(l);return l;});
+reg('enclosure',[eb,et,ef,ebk,al,ar,oled,...leds],0,-.1,0);
+ 
+// COLD PLATE
+const cp=bx(2.2,.16,1.8,0x1a3040,.88,.18);cp.position.set(0,-.58,0);
+for(let i=-4;i<=4;i++){const ch=bx(2.18,.018,.01,0x14d9c4,.7,.15,0x0d6050,.85);ch.position.set(0,-.485,i*.175);group.add(ch);}
+reg('coldplate',[cp],0,-.56,0);
+ 
+// PELTIERS
+const pm=[];
+[[-0.7,-.37,-.55],[0.7,-.37,-.55],[-0.7,-.37,.55],[0.7,-.37,.55]].forEach(p=>{
+  const t=bx(.86,.1,.76,0x0d1e2a,.8,.3,0x001830,.12);t.position.set(...p);
+  const tl=bx(.82,.04,.72,0x0a2840,.6,.5);tl.position.set(p[0],p[1]+.07,p[2]);
+  const cg=new THREE.Mesh(new THREE.PlaneGeometry(.84,.74),
+    new THREE.MeshStandardMaterial({color:0x14d9c4,emissive:0x14d9c4,emissiveIntensity:.5,transparent:true,opacity:.07,side:THREE.DoubleSide}));
+  cg.rotation.x=Math.PI/2;cg.position.set(p[0],p[1]-.06,p[2]);
+  pm.push(t,tl,cg);group.add(tl);group.add(cg);
+});
+reg('peltier',pm,0,-.37,0);
+ 
+// TMP117 ×6
+const tm=[];
+[[-0.8,-.455,-.6],[0,-.455,-.7],[0.8,-.455,-.6],[-0.8,-.455,.6],[0,-.455,.7],[0.8,-.455,.6]].forEach(p=>{
+  const s=bx(.13,.032,.09,0x1a1800,.1,.85);s.position.set(...p);
+  const g=sp(.021,0xf59e0b,0xf59e0b,2);g.position.set(p[0],p[1]+.022,p[2]);
+  tm.push(s,g);group.add(g);
+});
+reg('tmp117',tm,0,-.44,0);
+ 
+// MLX90640
+const mb=bx(.27,.046,.27,0x0a0012,.4,.6);mb.position.set(-1.55,-.125,.55);
+const ml=cy(.053,.04,0x030006,.1,.05);ml.position.set(-1.55,-.085,.55);group.add(ml);
+const mg=sp(.03,0xf43f5e,0xf43f5e,1.5);mg.position.set(-1.55,-.07,.55);group.add(mg);
+reg('mlx',[mb,ml,mg],-1.55,-.1,.55);
+ 
+// INA226 ×4
+const im=[];
+[-.8,-.2,.35,.95].forEach(x=>{
+  const s=bx(.16,.032,.1,0x001510,.1,.85);s.position.set(x-.08,-.45,.05);
+  const g=sp(.017,0x34d399,0x34d399,2);g.position.set(x-.08,-.425,.05);
+  im.push(s,g);group.add(g);
+});
+reg('ina226',im,.1,-.44,.05);
+ 
+// SHT40
+const shb=bx(.11,.032,.09,0x000818,.1,.85);shb.position.set(-1.3,-.45,.18);
+const shg=sp(.015,0x60a5fa,0x60a5fa,2);shg.position.set(-1.3,-.425,.18);group.add(shg);
+reg('sht40',[shb,shg],-1.3,-.43,.18);
+ 
+// PI 5
+const pb=bx(1.33,.048,.98,0x0a3020,.1,.7);pb.position.set(1.1,-.125,-.85);
+const ph=bx(.78,.1,.58,0x1a2e3e,.85,.2);ph.position.set(1.1,-.02,-.85);
+const pc=bx(.33,.054,.33,0x0a0d15,.95,.1);pc.position.set(1.1,-.065,-.85);
+const pg=bx(.58,.065,.052,0x0d0d0d,.1,.9);pg.position.set(.73,-.07,-.38);
+const pl=sp(.019,0x818cf8,0x818cf8,2);pl.position.set(1.74,-.072,-.38);group.add(pl);
+for(let i=0;i<2;i++){const u=bx(.13,.065,.2,0x0d2040,.1,.8);u.position.set(1.88,-.08,-.7+i*.27);group.add(u);}
+reg('pi5',[pb,ph,pc,pg,pl],1.1,-.06,-.85);
+ 
+// ESP32
+const espb=bx(.68,.036,.46,0x0a3020,.1,.7);espb.position.set(1.1,-.125,.55);
+const espm=bx(.5,.048,.31,0x0a1828,.7,.3,0x060f18,.12);espm.position.set(1.1,-.074,.55);
+const espl=sp(.021,0x818cf8,0x818cf8,2.5);espl.position.set(1.41,-.074,.55);group.add(espl);
+reg('esp32',[espb,espm,espl],1.1,-.08,.55);
+ 
+// PUMP
+const pumb=bx(.42,.3,.42,0x0d1e2a,.8,.3);pumb.position.set(-1.55,-.27,-.9);
+const pumr=cy(.1,.25,0xb87333,.9,.2);pumr.rotation.x=Math.PI/2;pumr.position.set(-1.55,-.1,-.9);group.add(pumr);
+reg('pump',[pumb,pumr],-1.55,-.2,-.9);
+ 
+// FANS
+const fm=[];const fb=[];
+[-1.5,1.5].forEach(z=>{
+  const ff=bx(.13,.86,.86,0x0d1820,.85,.2);ff.position.set(1.92,-.13,z);
+  const hub=cy(.07,.15,0x0d0d0d,.9,.1);hub.rotation.z=Math.PI/2;hub.position.set(1.92,-.13,z);group.add(hub);
+  for(let b=0;b<7;b++){
+    const bl=bx(.007,.26,.062,0x1a2a3a,.6,.5);bl.position.set(1.92,-.13,z);
+    bl.rotation.set(0,0,b*(Math.PI*2/7));bl.geometry.translate(.13,0,0);
+    group.add(bl);fb.push(bl);
+  }
+  for(let r=0;r<3;r++){
+    const rg=new THREE.Mesh(new THREE.TorusGeometry(.085+r*.072,.007,6,28),
+      new THREE.MeshStandardMaterial({color:0x0d1e30,metalness:.7,roughness:.3}));
+    rg.position.set(1.94,-.13,z);rg.rotation.y=Math.PI/2;group.add(rg);
+  }
+  fm.push(ff,hub);
+});
+reg('fans',fm,1.92,-.13,0);
+ 
+// MOSFETS
+const mosm=[];
+[[-0.7,-.37,-.55],[0.7,-.37,-.55],[-0.7,-.37,.55],[0.7,-.37,.55]].forEach(p=>{
+  const m=bx(.09,.14,.07,0x1a0a00,.5,.5);m.position.set(p[0]+.6,-.3,p[2]);mosm.push(m);
+});
+reg('mosfet',mosm,.8,-.3,0);
+ 
+// RELAY
+const reb=bx(.28,.17,.2,0x0d0010,.3,.6);reb.position.set(-1.55,-.32,.02);
+const rel=sp(.027,0xf43f5e,0xf43f5e,1.8);rel.position.set(-1.55,-.17,.02);group.add(rel);
+reg('relay',[reb,rel],-1.55,-.25,.02);
+ 
+// Tubes
+const tm2=new THREE.MeshStandardMaterial({color:0x0d5040,metalness:.1,roughness:.6,transparent:true,opacity:.55,emissive:0x0a3020,emissiveIntensity:.12});
+[[-1.0,-.22,-.25,.12,.12,1.1,Math.PI/7],[-.15,-.22,.18,.12,.12,.7,-Math.PI/9]].forEach(([x,y,z,w,h,d,ry])=>{
+  const t=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),tm2);t.position.set(x,y,z);t.rotation.y=ry;group.add(t);});
+ 
+/* ═══════════════════════════════════════════
+   CAMERA ANIMATION STATE
+═══════════════════════════════════════════ */
+// Default orbit
+let rotX=.38,rotY=.52,tRX=.38,tRY=.52,zoom=1,tZ=1;
+// Target for animated zoom-to
+let camTX=null,camTY=null,camTZ_=null;
+let lookTX=0,lookTY=-.2,lookTZ=0;
+let tLX=0,tLY=-.2,tLZ=0;
+let animating=false;
+ 
+function zoomToPart(cx,cy,cz){
+  // Push camera to a nice angle looking at that part
+  const dist=4.5;
+  const angle=Math.atan2(cx,cz)+.4;
+  camTX=cx+dist*Math.sin(angle)*.9;
+  camTY=cy+1.8;
+  camTZ_=cz+dist*Math.cos(angle)*.9;
+  tLX=cx;tLY=cy-.1;tLZ=cz;
+  animating=true;
+}
+ 
+function resetCamera(){
+  camTX=null;camTY=null;camTZ_=null;
+  tRX=.38;tRY=.52;tZ=1;
+  tLX=0;tLY=-.2;tLZ=0;
+  animating=false;
+}
+ 
+/* ═══════════════════════════════════════════
+   HIGHLIGHT SYSTEM
+═══════════════════════════════════════════ */
+let currentId=null;
+const hlMeshes=[];
+ 
+function clearHL(){
+  hlMeshes.forEach(m=>scene.remove(m));
+  hlMeshes.length=0;
+  // Reset all to normal opacity
+  Object.values(PARTS).forEach(({meshes})=>meshes.forEach(m=>{
+    if(m.material&&m.material.opacity!==undefined){
+      m.material.transparent=m.material.opacity<1;
+    }
+  }));
+}
+ 
+function highlightPart(id){
+  clearHL();
+  const part=PARTS[id];if(!part)return;
+  const info=DB[id];if(!info)return;
+  const col=new THREE.Color(info.color);
+ 
+  // Dim everything else
+  Object.entries(PARTS).forEach(([pid,{meshes}])=>{
+    meshes.forEach(m=>{
+      if(!m.material)return;
+      m.material.transparent=true;
+      m.material.opacity=pid===id?1:.18;
+    });
+  });
+ 
+  // Glow overlay on target
+  part.meshes.forEach(m=>{
+    if(!m.geometry)return;
+    const hl=m.clone();
+    hl.material=new THREE.MeshStandardMaterial({
+      color:col,emissive:col,emissiveIntensity:1.2,
+      transparent:true,opacity:.25,depthWrite:false,
+      side:THREE.FrontSide
+    });
+    hl.scale.multiplyScalar(1.07);
+    scene.add(hl);
+    hlMeshes.push(hl);
+  });
+}
+ 
+/* ═══════════════════════════════════════════
+   CALLOUT LINE (SVG overlay)
+═══════════════════════════════════════════ */
+const calloutLine=document.getElementById('callout-line');
+const calloutDot=document.getElementById('callout-dot');
+const tmpVec=new THREE.Vector3();
+ 
+function updateCallout(worldPos,color){
+  tmpVec.copy(worldPos);tmpVec.project(camera);
+  const W=vp.clientWidth,H=vp.clientHeight;
+  const sx=(tmpVec.x+1)/2*W;
+  const sy=(-tmpVec.y+1)/2*H;
+  // Line from part center to bottom-center of viewport (drawer opening)
+  const tx=W/2,ty=H*.72;
+  calloutLine.setAttribute('x1',sx);calloutLine.setAttribute('y1',sy);
+  calloutLine.setAttribute('x2',tx);calloutLine.setAttribute('y2',ty);
+  calloutLine.setAttribute('stroke',color);
+  calloutLine.setAttribute('opacity','.5');
+  calloutDot.setAttribute('cx',sx);calloutDot.setAttribute('cy',sy);
+  calloutDot.setAttribute('stroke',color);
+  calloutDot.setAttribute('opacity','1');
+}
+ 
+function hideCallout(){
+  calloutLine.setAttribute('opacity','0');
+  calloutDot.setAttribute('opacity','0');
+}
+ 
+/* ═══════════════════════════════════════════
+   PICK — main interaction
+═══════════════════════════════════════════ */
+function pick(id){
+  if(currentId===id){closePick();return;}
+  currentId=id;
+ 
+  // Catalogue
+  document.querySelectorAll('.cat-row').forEach(el=>el.classList.remove('selected'));
+  const row=document.querySelector(`[data-id="${id}"]`);if(row){row.classList.add('selected');row.scrollIntoView({block:'nearest'});}
+ 
+  // 3D
+  highlightPart(id);
+  const part=PARTS[id];
+  if(part){zoomToPart(part.center.x,part.center.y,part.center.z);}
+ 
+  // Hide idle
+  document.getElementById('vp-idle').classList.add('hidden');
+ 
+  // Fill drawer
+  const info=DB[id];if(!info)return;
+  fillDrawer(id,info);
+  document.getElementById('drawer').classList.add('open');
+}
+ 
+function closePick(){
+  currentId=null;
+  document.querySelectorAll('.cat-row').forEach(el=>el.classList.remove('selected'));
+  clearHL();
+  resetCamera();
+  hideCallout();
+  document.getElementById('vp-idle').classList.remove('hidden');
+  document.getElementById('drawer').classList.remove('open');
+}
+ 
+function fillDrawer(id,info){
+  // Col 1
+  document.getElementById('d-comp-name').textContent=info.name;
+  document.getElementById('d-comp-name').style.color=info.color;
+  document.getElementById('d-comp-tagline').textContent=info.tagline;
+  document.getElementById('d-comp-tagline').style.color='var(--text)';
+  const badge=document.getElementById('d-badge');
+  badge.textContent=info.layer;
+  badge.style.color=info.color;badge.style.borderColor=info.color+'44';badge.style.background=info.color+'10';
+  const specDiv=document.getElementById('d-specs');
+  specDiv.innerHTML=info.specs.map(([k,v])=>
+    `<div class="d-spec-row"><span class="dsr-k">${k}</span><span class="dsr-v" style="color:${info.color}">${v}</span></div>`
+  ).join('')+'<div class="d-spec-row"><span class="dsr-k">Buy At</span><span class="dsr-v" style="color:#34d399;font-size:9px">${info.store}</span></div>'+
+  `<div class="d-spec-row"><span class="dsr-k">India Price</span><span class="dsr-v" style="color:#34d399">${info.price}</span></div>`;
+ 
+  // Col 2
+  document.getElementById('d-location').innerHTML=`
+    <div class="loc-card" style="border-color:${info.color}22">
+      <div class="loc-card-head">
+        <div class="loc-icon">${info.locIcon}</div>
+        <div class="loc-position" style="color:${info.color}">${info.locPosition}</div>
+      </div>
+      <div class="loc-desc">${info.locDesc}</div>
+    </div>`;
+ 
+  // Col 3
+  document.getElementById('d-why-text').textContent=info.why;
+  const imp=document.getElementById('d-importance');
+  imp.textContent=info.importance;
+  imp.style.borderLeftColor=info.color;
+  imp.style.background=info.color+'0a';
+}
+ 
+/* ═══════════════════════════════════════════
+   ORBIT CONTROLS
+═══════════════════════════════════════════ */
+let isDrag=false,px_=0,py_=0,cxs=0,cys=0;
+let lookX=0,lookY=-.2,lookZ=0;
+ 
+vp.addEventListener('mousedown',e=>{isDrag=true;px_=e.clientX;py_=e.clientY;cxs=e.clientX;cys=e.clientY;});
+document.addEventListener('mouseup',e=>{isDrag=false;});
+document.addEventListener('mousemove',e=>{
+  if(!isDrag)return;
+  if(animating){animating=false;camTX=null;}
+  tRY+=(e.clientX-px_)*.005;tRX+=(e.clientY-py_)*.004;
+  tRX=Math.max(-1.1,Math.min(1.1,tRX));
+  px_=e.clientX;py_=e.clientY;
+});
+vp.addEventListener('wheel',e=>{tZ*=1+e.deltaY*.001;tZ=Math.max(.35,Math.min(2.8,tZ));e.preventDefault();},{passive:false});
+ 
+// Touch
+let tp_=null;
+vp.addEventListener('touchstart',e=>{if(e.touches.length===1)tp_={x:e.touches[0].clientX,y:e.touches[0].clientY};});
+vp.addEventListener('touchmove',e=>{
+  if(!tp_||e.touches.length!==1)return;
+  tRY+=(e.touches[0].clientX-tp_.x)*.005;tRX+=(e.touches[0].clientY-tp_.y)*.004;
+  tRX=Math.max(-1.1,Math.min(1.1,tRX));
+  tp_={x:e.touches[0].clientX,y:e.touches[0].clientY};
+  e.preventDefault();},{passive:false});
+vp.addEventListener('touchend',()=>tp_=null);
+ 
+/* ═══════════════════════════════════════════
+   RENDER LOOP
+═══════════════════════════════════════════ */
+let t_=0;
+(function animate(){
+  requestAnimationFrame(animate);
+  t_+=.016;
+ 
+  if(animating&&camTX!==null){
+    // Smooth zoom-to
+    camera.position.x+=(camTX-camera.position.x)*.07;
+    camera.position.y+=(camTY-camera.position.y)*.07;
+    camera.position.z+=(camTZ_-camera.position.z)*.07;
+    lookX+=(tLX-lookX)*.07;lookY+=(tLY-lookY)*.07;lookZ+=(tLZ-lookZ)*.07;
+    camera.lookAt(lookX,lookY,lookZ);
+    // Update callout after camera settles
+    if(currentId&&PARTS[currentId]){
+      updateCallout(PARTS[currentId].center,DB[currentId]?.color||'#14d9c4');
+    }
+  } else {
+    // Free orbit
+    rotX+=(tRX-rotX)*.08;rotY+=(tRY-rotY)*.08;zoom+=(tZ-zoom)*.06;
+    const d=10*zoom;
+    camera.position.x=d*Math.sin(rotY)*Math.cos(rotX);
+    camera.position.y=d*Math.sin(rotX);
+    camera.position.z=d*Math.cos(rotY)*Math.cos(rotX);
+    lookX+=(tLX-lookX)*.06;lookY+=(tLY-lookY)*.06;lookZ+=(tLZ-lookZ)*.06;
+    camera.lookAt(lookX,lookY,lookZ);
+    if(currentId&&PARTS[currentId]){
+      updateCallout(PARTS[currentId].center,DB[currentId]?.color||'#14d9c4');
+    }
+  }
+ 
+  // Fan spin
+  fb.forEach(b=>b.rotation.z+=.07);
+ 
+  // Glow pulses
+  pt.intensity=.8+.3*Math.sin(t_*1.4);
+  og.material.opacity=.07+.05*Math.sin(t_*2.2);
+  fring.rotation.z+=.003;
+ 
+  // Highlight pulse
+  if(hlMeshes.length){
+    const op=.18+.1*Math.sin(t_*3);
+    hlMeshes.forEach(h=>h.material.opacity=op);
+  }
+ 
+  renderer.render(scene,camera);
+})();
+</script>
+</body>
+</html>
