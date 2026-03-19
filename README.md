@@ -20,8 +20,13 @@ Aether-Flow:      [power rises] → [AI predicts] → [cooling starts]     ← b
 ```
 
 ---
-
 ## Live Demo
+
+![Aether-Flow — AI predicts heat before it arrives](demo.gif)
+
+*Watch the blue dashed line rise BEFORE actual temperature moves —
+that is the AI predicting the future and cooling starting early.*
+```
 
 Open any of these files directly in your browser — no server needed:
 
