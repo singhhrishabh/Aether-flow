@@ -67,8 +67,10 @@ ESP32 receives the predicted temperature and ramps up PWM to four TEC1-12706 Pel
 
 ---
 
+
 ## Architecture
 
+```
 ┌─────────────────────────────────────────────────────┐
 │                  PERCEPTION LAYER                   │
 │  TMP117 ×6 · MLX90640 thermal cam · INA226 ×4       │
@@ -90,8 +92,7 @@ ESP32 receives the predicted temperature and ramps up PWM to four TEC1-12706 Pel
 │   Kamoer NKP pump · Noctua fans · Safety relay      │
 │         Hardware PID fallback if AI offline         │
 └─────────────────────────────────────────────────────┘
-
-
+```
 ---
 
 ## Target Performance
@@ -128,6 +129,7 @@ ESP32 receives the predicted temperature and ramps up PWM to four TEC1-12706 Pel
 
 ## Repository Structure
 
+```
 aether-flow/
 ├── firmware/
 │   └── AetherFlow_Firmware.ino        ESP32 firmware (Arduino/FreeRTOS)
@@ -147,7 +149,7 @@ aether-flow/
     ├── AetherFlow_Assembly.html
     └── AetherFlow_LayerAnimation.html
     └── 3D view with components
-
+```
 
 ---
 
