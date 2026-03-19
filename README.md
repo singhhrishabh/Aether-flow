@@ -1,5 +1,7 @@
-# Aether-flow
-AI-driven predictive thermal management — TFT model on Raspberry Pi 5 predicts heat 30s ahead and pre-cools via Peltier modules .
+# Aether-Flow
+
+**AI-Driven Predictive Thermal Management System**
+
 > Aether-Flow predicts thermal events **15–30 seconds before they occur**
 > by reading INA226 power draw sensors and running a Temporal Fusion
 > Transformer model entirely on-device on a Raspberry Pi 5 — then
@@ -10,23 +12,32 @@ AI-driven predictive thermal management — TFT model on Raspberry Pi 5 predicts
 
 ## The Core Idea
 
-Every cooling system today reacts **after** temperature rises.
-Aether-Flow acts **before** — by reading the power draw signal that
-precedes heat by 5–15 seconds and predicting the outcome.
-
+Every cooling system today reacts **after** temperature rises. Aether-Flow acts **before**
+— by reading the power draw signal that precedes heat by 5–15 seconds and predicting the outcome.
 ```
-Normal cooling:   [heat rises] → [sensor detects] → [cooling starts]   ← always too late
-Aether-Flow:      [power rises] → [AI predicts] → [cooling starts]     ← before heat arrives
+Normal:      [heat rises] → [sensor detects] → [cooling starts]  ← too late
+Aether-Flow: [power rises] → [AI predicts] → [cooling starts]    ← before heat arrives
 ```
 
 ---
-## Live Demo
+
+## Live Simulations
 
 ![Aether-Flow — AI predicts heat before it arrives](demo.gif)
 
 *Watch the blue dashed line rise BEFORE actual temperature moves —
 that is the AI predicting the future and cooling starting early.*
-```
+
+
+Open directly in browser — no server needed:
+
+- [Full AI Dashboard](https://singhhrishabh.github.io/Aether-flow/simulation/AetherFlow_WorkingModel.html)
+- [How It Works Animation](https://singhhrishabh.github.io/Aether-flow/simulation/AetherFlow_HowItWorks.html)
+- [3D Assembly Animation](https://singhhrishabh.github.io/Aether-flow/simulation/AetherFlow_Assembly.html)
+- [6-Layer Architecture](https://singhhrishabh.github.io/Aether-flow/simulation/AetherFlow_LayerAnimation.html)
+- [3-D view with Componenets](https://singhhrishabh.github.io/Aether-flow/simulation/Aetherflow_componentcatalogue.html)
+
+---
 
 Open any of these files directly in your browser — no server needed:
 
@@ -39,78 +50,47 @@ Open any of these files directly in your browser — no server needed:
 | `simulation/Aetherflow_componentcatalogue.html` | 3D view with components |
 
 ---
-Link to every working simulation:
 
-| Link | What it shows |
-|---|---|
-| `https://singhhrishabh.github.io/Aether-flow/simulation/AetherFlow_WorkingModel.html` | Full live AI dashboard with thermal camera, prediction timeline, Peltier control |
-| `https://singhhrishabh.github.io/Aether-flow/simulation/AetherFlow_HowItWorks.html` | Animated explainer of the full system |
-| `https://singhhrishabh.github.io/Aether-flow/simulation/AetherFlow_Assembly.html` | 3D assembly animation |
-| `https://singhhrishabh.github.io/Aether-flow/simulation/AetherFlow_LayerAnimation.html` | 6-layer architecture walkthrough |
-| `https://singhhrishabh.github.io/Aether-flow/simulation/Aetherflow_componentcatalogue.html` | 3D view with components |
-
-
-## How It Works — 3 Steps
+## How It Works
 
 **Step 1 — INA226 detects rising power draw**
-Four INA226 power monitors read CPU, GPU, memory, and system rail current
-every 500ms. When a workload starts, current rises 5–15 seconds before
-temperature does.
+
+Four INA226 power monitors read CPU, GPU, memory, and system rail current every 500ms. When a workload starts, current rises 5–15 seconds before temperature does.
 
 **Step 2 — TFT model predicts future temperature**
-A Temporal Fusion Transformer model running on Raspberry Pi 5 reads
-60 seconds of sensor history and outputs temperature predictions at
-+5s, +10s, +15s, +20s, and +30s horizons. Inference takes under 30ms.
+
+A Temporal Fusion Transformer model running on Raspberry Pi 5 reads 60 seconds of sensor history and outputs temperature predictions at +5s, +10s, +15s, +20s, and +30s horizons. Inference takes under 30ms.
 
 **Step 3 — Peltier modules cool before heat arrives**
-ESP32 receives the predicted temperature and ramps up PWM to the four
-TEC1-12706 Peltier modules immediately — while the actual temperature
-line is still flat.
+
+ESP32 receives the predicted temperature and ramps up PWM to four TEC1-12706 Peltier modules immediately — while the actual temperature line is still flat.
 
 ---
 
 ## Architecture
 
-```
 ┌─────────────────────────────────────────────────────┐
-│                  PERCEPTION LAYER                    │
+│                  PERCEPTION LAYER                   │
 │  TMP117 ×6 · MLX90640 thermal cam · INA226 ×4       │
 │  SHT40 humidity · YF-S201 flow sensor               │
 │                   I2C bus — 500ms                   │
 └──────────────────────┬──────────────────────────────┘
                        │
 ┌──────────────────────▼──────────────────────────────┐
-│               INTELLIGENCE LAYER                     │
-│         Raspberry Pi 5 — fully offline               │
-│   TFT model (TFLite) → temperature prediction        │
+│               INTELLIGENCE LAYER                    │
+│         Raspberry Pi 5 — fully offline              │
+│   TFT model (TFLite) → temperature prediction       │
 │   PPO RL agent → optimal PWM per zone               │
-│         USB serial → ESP32 commands                  │
+│         USB serial → ESP32 commands                 │
 └──────────────────────┬──────────────────────────────┘
                        │
 ┌──────────────────────▼──────────────────────────────┐
-│                 ACTUATION LAYER                      │
-│   ESP32 → IRF540N MOSFET × 4 → TEC1-12706 × 4      │
+│                 ACTUATION LAYER                     │
+│   ESP32 → IRF540N MOSFET × 4 → TEC1-12706 × 4       │
 │   Kamoer NKP pump · Noctua fans · Safety relay      │
-│         Hardware PID fallback if AI offline          │
+│         Hardware PID fallback if AI offline         │
 └─────────────────────────────────────────────────────┘
-```
 
----
-
-## Hardware Stack
-
-| Component | Part | Role |
-|---|---|---|
-| Raspberry Pi 5 (4GB) | SC1112 | AI inference + data logging |
-| ESP32-WROOM-32 | ESP32-D0WDQ6 | PWM control + PID fallback |
-| TEC1-12706 Peltier ×4 | TEC1-12706 | Primary cooling actuation |
-| TMP117 sensor ×6 | TMP117MAIDRVR | ±0.1°C temperature sensing |
-| MLX90640 thermal cam | MLX90640ESF | 768-pixel IR heatmap |
-| INA226 power monitor ×4 | INA226AIDGSR | Power draw AI input signal |
-| SHT40 humidity sensor | SHT40-AD1B | Dew point guard |
-| IRF540N MOSFET ×4 | IRF540NPBF | Peltier PWM switching |
-| Kamoer NKP pump | KCS-NKP-D-1 | Coolant circulation |
-| Hardware safety relay | 12V/10A SPDT | Emergency thermal cutoff |
 
 ---
 
@@ -131,9 +111,23 @@ line is still flat.
 
 ---
 
+## Current Status
+
+- [x] All 4 subsystem circuits simulated and verified in Tinkercad
+- [x] ESP32 firmware written — ready for hardware deployment
+- [x] Raspberry Pi 5 data logger written (Python 3.11)
+- [x] TFLite model training pipeline complete (PyTorch + PyTorch Forecasting)
+- [x] Interactive AI simulation with predictive vs reactive comparison
+- [x] Full project proposal with BOM, architecture, market analysis
+- [ ] Physical hardware prototype — seeking lab access and funding
+- [ ] Real sensor data collection (target: 100,000+ rows)
+- [ ] TFT model training on real hardware data
+- [ ] Performance validation against design targets
+
+---
+
 ## Repository Structure
 
-```
 aether-flow/
 ├── firmware/
 │   └── AetherFlow_Firmware.ino        ESP32 firmware (Arduino/FreeRTOS)
@@ -153,22 +147,22 @@ aether-flow/
     ├── AetherFlow_Assembly.html
     └── AetherFlow_LayerAnimation.html
     └── 3D view with components
-```
+
 
 ---
 
-## Current Status
+## Hardware
 
-- [x] All 4 subsystem circuits simulated and verified in Tinkercad
-- [x] ESP32 firmware written — ready for hardware deployment
-- [x] Raspberry Pi 5 data logger written (Python 3.11)
-- [x] TFLite model training pipeline complete (PyTorch + PyTorch Forecasting)
-- [x] Interactive AI simulation with predictive vs reactive comparison
-- [x] Full project proposal with BOM, architecture, market analysis
-- [ ] Physical hardware prototype — seeking lab access and funding
-- [ ] Real sensor data collection (target: 100,000+ rows)
-- [ ] TFT model training on real hardware data
-- [ ] Performance validation against design targets
+| Component | Qty | Role |
+|---|---|---|
+| Raspberry Pi 5 4GB | 1 | AI inference |
+| ESP32-WROOM-32 | 1 | PWM control |
+| TEC1-12706 Peltier | 4 | Cooling |
+| TMP117 sensor | 6 | Temperature |
+| MLX90640 camera | 1 | IR heatmap |
+| INA226 power monitor | 4 | AI input signal |
+
+**Total BOM: ~$359 USD**
 
 ---
 
@@ -193,17 +187,15 @@ aether-flow/
 - **Edge AI / Industrial IoT** — $18B by 2028
 - **5G base stations** — $15B addressable
 
----
+c
 
 ## Author
 
 **Rishabh Singh**
-B.E. Electronics and Communication Engineering, Year 1
-BITS Pilani Dubai Campus, Academic City, Dubai, UAE
+B.E. ECE Year 1 — BITS Pilani Dubai Campus
+[rishabh.s0072@gmail.com] | [LinkedIn URL]
 
-[f20250559@dubai.bits-pilani.ac.in] 
+*Seeking research supervision and lab accesto build and validate
+the physical prototype.
 
-*Seeking research supervision and lab access to build and validate
-the physical prototype.*
-
----
+[GitHub](https://github.com/singhhrishabh) | [Live Demo](https://singhhrishabh.github.io/Aether-flow/)
