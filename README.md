@@ -196,7 +196,7 @@ aether-flow/
 B.E. Electronics and Communication Engineering, Year 1
 BITS Pilani Dubai Campus, Academic City, Dubai, UAE
 
-[rishabh.s0072@gmail.com] 
+[f20250559@dubai.bits-pilani.ac.in] 
 
 *Seeking research supervision and lab access to build and validate
 the physical prototype.*
