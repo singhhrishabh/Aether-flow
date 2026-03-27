@@ -195,7 +195,7 @@ c
 
 **Rishabh Singh**
 B.E. ECE Year 1 — BITS Pilani Dubai Campus
-[rishabh.s0072@gmail.com] | [LinkedIn URL]
+[rishabh.s0072@gmail.com] | [https://www.linkedin.com/in/rishabh-singh-8b66003b2/?skipRedirect=true]
 
 *Seeking research supervision and lab accesto build and validate
 the physical prototype.
