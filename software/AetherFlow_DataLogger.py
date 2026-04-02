@@ -40,6 +40,8 @@ HOW TO RUN:
 ============================================================
 """
 
+from __future__ import annotations
+
 import serial          # Reads data from USB serial port
 import json            # Parses JSON strings into Python dicts
 import csv             # Saves data to CSV spreadsheet files
@@ -49,6 +51,7 @@ import sys             # System functions (exit, etc.)
 import threading       # Runs multiple tasks at the same time
 from datetime import datetime   # Date and time formatting
 from collections import deque   # A fast list with max size (sliding window)
+from typing import Any, Optional
 
 # ── Try importing optional libraries ──────────────────────────────────────
 # These are "optional" — the script works without them
@@ -160,20 +163,23 @@ ai_model        = None     # Loaded TFLite model
 #  SETUP — Create folders and files
 # ============================================================
 
-def setup_directories():
+def setup_directories() -> None:
     """Create data directories if they don't exist."""
     os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(os.path.join(DATA_DIR, "model"), exist_ok=True)
     print(f"[SETUP] Data directory: {os.path.abspath(DATA_DIR)}")
 
 
-def setup_csv():
+def setup_csv() -> str:
     """
     Create the CSV file with headers if it doesn't exist.
 
     CSV = Comma-Separated Values — a simple spreadsheet format.
     Every row is one sensor reading. Every column is one value.
     Excel and Python pandas can both read this easily.
+
+    Returns:
+        str: Absolute path to the CSV file.
     """
     csv_path = os.path.join(DATA_DIR, CSV_FILENAME)
 
@@ -209,13 +215,16 @@ def setup_csv():
     return csv_path
 
 
-def setup_serial():
+def setup_serial() -> bool:
     """
     Open the serial connection to the ESP32.
 
     Serial communication is how the Pi and ESP32 talk over USB.
     Think of it like a very simple text chat — the ESP32 sends
     a line of text (JSON), the Pi reads it, and vice versa.
+
+    Returns:
+        bool: True if connection succeeded, False otherwise.
     """
     global serial_conn
 
@@ -247,8 +256,12 @@ def setup_serial():
         return False
 
 
-def setup_influx():
-    """Connect to InfluxDB for the live Grafana dashboard."""
+def setup_influx() -> Any:
+    """Connect to InfluxDB for the live Grafana dashboard.
+
+    Returns:
+        InfluxDB WriteApi instance, or None if unavailable.
+    """
     if not INFLUX_AVAILABLE:
         return None
 
@@ -264,7 +277,7 @@ def setup_influx():
         return None
 
 
-def load_ai_model():
+def load_ai_model() -> bool:
     """
     Load the trained TFLite AI model.
 
@@ -273,6 +286,9 @@ def load_ai_model():
 
     The model was trained on your CSV data and learned to
     predict the optimal cooling settings.
+
+    Returns:
+        bool: True if model loaded successfully, False otherwise.
     """
     global ai_model
 
@@ -307,7 +323,7 @@ def load_ai_model():
 #  READING DATA FROM ESP32
 # ============================================================
 
-def read_serial_line():
+def read_serial_line() -> Optional[dict]:
     """
     Read one line of JSON from the ESP32.
 
@@ -315,7 +331,9 @@ def read_serial_line():
     {"t":47.3,"ta":24.1,"h":52.1,"dp":14.2,"w":12.4,...}
 
     We read the line, parse the JSON, and return a dict.
-    Returns None if reading fails.
+
+    Returns:
+        dict with sensor values, or None if reading fails.
     """
     if not serial_conn or not serial_conn.is_open:
         return None
@@ -346,7 +364,7 @@ def read_serial_line():
         return None
 
 
-def enrich_reading(data):
+def enrich_reading(data: dict) -> dict:
     """
     Add extra fields to the sensor reading before saving.
 
@@ -354,6 +372,12 @@ def enrich_reading(data):
     - timestamp (human-readable date/time)
     - unix_time (seconds since epoch — useful for ML)
     - temp_error (how far from target we are)
+
+    Args:
+        data: Raw sensor dict from ESP32 with keys 't', 'ta', 'h', etc.
+
+    Returns:
+        Enriched dict with added 'timestamp', 'unix_time', 'temp_error' fields.
     """
     now = datetime.now()
     data["timestamp"]  = now.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
@@ -366,7 +390,7 @@ def enrich_reading(data):
 #  SAVING DATA
 # ============================================================
 
-def save_to_csv(data, csv_path):
+def save_to_csv(data: dict, csv_path: str) -> None:
     """
     Append one reading to the CSV file.
 
@@ -434,7 +458,7 @@ def save_to_influx(data, write_api):
 #  UPDATE STATISTICS
 # ============================================================
 
-def update_stats(data):
+def update_stats(data: dict) -> None:
     """Keep running statistics on temperature and energy."""
     temp = data.get("t", 0)
     power = data.get("w", 0)
@@ -463,7 +487,7 @@ def update_stats(data):
 #  AI INFERENCE — Run model and send commands to ESP32
 # ============================================================
 
-def run_ai_inference():
+def run_ai_inference() -> Optional[dict]:
     """
     Run the LSTM model on the last 60 seconds of sensor data
     and return optimal control commands.
@@ -473,8 +497,9 @@ def run_ai_inference():
     2. A trained model file exists
     3. We have at least WINDOW_SIZE readings collected
 
-    Returns a dict: {"peltier": 120, "fan1": 180, "fan2": 180}
-    or None if inference fails.
+    Returns:
+        dict: {"peltier": int, "fan1": int, "fan2": int, "mode": "AI"}
+        or None if inference fails.
     """
     if not ai_model or len(sensor_window) < WINDOW_SIZE:
         return None
@@ -533,14 +558,15 @@ def run_ai_inference():
         return None
 
 
-def send_ai_command(command):
+def send_ai_command(command: dict) -> None:
     """
     Send a JSON control command to the ESP32.
 
     The ESP32 reads this and immediately applies the
     Peltier and fan duty cycles.
 
-    Format: {"peltier":120,"fan1":180,"fan2":180}
+    Args:
+        command: Dict with keys 'peltier', 'fan1', 'fan2' (0–255 PWM values).
     """
     if not serial_conn or not serial_conn.is_open:
         return
@@ -556,7 +582,7 @@ def send_ai_command(command):
 #  DISPLAY — Print live readings to terminal
 # ============================================================
 
-def print_live_reading(data, reading_num):
+def print_live_reading(data: dict, reading_num: int) -> None:
     """Print a formatted live reading to the terminal."""
 
     # Only print every LOG_INTERVAL readings to avoid spam
@@ -592,7 +618,7 @@ def print_live_reading(data, reading_num):
     print(f"  Avg temp:   {stats['avg_temp']:.1f}°C  |  Min: {stats['min_temp']:.1f}°C  Max: {stats['max_temp']:.1f}°C")
 
 
-def print_startup_banner():
+def print_startup_banner() -> None:
     """Print a nice startup banner to the terminal."""
     print("\n" + "═"*55)
     print("  ░█▀█░█▀▀░▀█▀░█░█░█▀▀░█▀▄░░░█▀▀░█░░░█▀█░█░█")
@@ -706,7 +732,7 @@ def main():
 #  SESSION SUMMARY
 # ============================================================
 
-def print_session_summary():
+def print_session_summary() -> None:
     """Print a summary of the data collection session."""
     duration = datetime.now() - stats["session_start"]
     hours = duration.total_seconds() / 3600
@@ -732,7 +758,7 @@ def print_session_summary():
 #  Run this separately to check your collected data
 # ============================================================
 
-def check_data_quality(csv_path=None):
+def check_data_quality(csv_path: Optional[str] = None) -> None:
     """
     Analyze your collected CSV data and report:
     - How many rows collected
@@ -740,8 +766,8 @@ def check_data_quality(csv_path=None):
     - Temperature distribution
     - Whether you have enough data to train the AI
 
-    Run this after collecting data:
-        python3 -c "from AetherFlow_DataLogger import check_data_quality; check_data_quality()"
+    Args:
+        csv_path: Path to CSV file. Defaults to the standard data location.
     """
     try:
         import pandas as pd

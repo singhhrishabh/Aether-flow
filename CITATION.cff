@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+title: "Aether-Flow: AI-Driven Predictive Thermal Management"
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - family-names: Singh
+    given-names: Rishabh
+    email: rishabh.s0072@gmail.com
+    affiliation: BITS Pilani Dubai Campus
+    orcid: ""
+repository-code: https://github.com/singhhrishabh/Aether-flow
+url: https://singhhrishabh.github.io/Aether-flow/
+license: MIT
+version: 0.1.0
+date-released: "2026-03-16"
+keywords:
+  - predictive-cooling
+  - thermal-management
+  - temporal-fusion-transformer
+  - raspberry-pi
+  - esp32
+  - peltier
+  - edge-ai
+  - tflite
+  - pid-controller
+abstract: >-
+  Aether-Flow is an AI-driven predictive thermal management system that
+  exploits the temporal lag between electrical power draw and thermal
+  response. Using INA226 current sensors and a Temporal Fusion Transformer
+  model running on a Raspberry Pi 5. the system predicts temperature
+  excursions 15-30 seconds before onset and pre-activates Peltier
+  thermoelectric coolers via ESP32 PWM control.

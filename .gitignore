@@ -1,3 +1,11 @@
+# macOS
+.DS_Store
+*.DS_Store
+
+# Aether-Flow data and model artifacts
+aetherflow_data/
+*.tflite
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

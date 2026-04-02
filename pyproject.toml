@@ -1,0 +1,45 @@
+[project]
+name = "aetherflow"
+version = "0.1.0"
+description = "AI-driven predictive thermal management — TFT model on Raspberry Pi 5 predicts heat 30s ahead and pre-cools via Peltier modules"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Rishabh Singh", email = "rishabh.s0072@gmail.com"},
+]
+keywords = [
+    "thermal-management",
+    "predictive-cooling",
+    "temporal-fusion-transformer",
+    "raspberry-pi",
+    "esp32",
+    "peltier",
+    "edge-ai",
+    "tflite",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: System :: Hardware",
+]
+
+[project.urls]
+Homepage = "https://singhhrishabh.github.io/Aether-flow/"
+Repository = "https://github.com/singhhrishabh/Aether-flow"
+Issues = "https://github.com/singhhrishabh/Aether-flow/issues"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "D"]
+ignore = ["D100", "D104"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["software"]

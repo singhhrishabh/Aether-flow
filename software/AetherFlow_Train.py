@@ -46,11 +46,15 @@ try:    import pandas as pd
 except: missing.append("pandas")
 try:    import numpy as np
 except: missing.append("numpy")
-try:    from sklearn.preprocessing import MinMaxScaler
-        from sklearn.model_selection import train_test_split
-except: missing.append("scikit-learn")
-try:    import tensorflow as tf
-except: missing.append("tensorflow")
+try:
+    from sklearn.preprocessing import MinMaxScaler
+    from sklearn.model_selection import train_test_split
+except ImportError:
+    missing.append("scikit-learn")
+try:
+    import tensorflow as tf
+except ImportError:
+    missing.append("tensorflow")
 
 if missing:
     print(f"[ERROR] Missing libraries: {', '.join(missing)}")

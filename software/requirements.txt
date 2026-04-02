@@ -1,24 +1,31 @@
 # Aether-Flow — Raspberry Pi 5 dependencies
 # Install with: pip install -r requirements.txt
+#
+# Versions are pinned for reproducibility.
+# Last verified: 2026-03-27
 
-# Core
-numpy>=1.24.0
-pandas>=2.0.0
+# ── Core ──────────────────────────────────────────────
+numpy==1.26.4
+pandas==2.2.1
 
-# AI / ML
-torch>=2.0.0
-pytorch-forecasting>=1.0.0
-tensorflow>=2.13.0
-stable-baselines3>=2.0.0
-gymnasium>=0.29.0
+# ── AI / ML ───────────────────────────────────────────
+torch==2.2.1
+pytorch-forecasting==1.0.0
+tensorflow==2.16.1
+stable-baselines3==2.3.0
+gymnasium==0.29.1
 
-# Sensors / Hardware
-smbus2>=0.4.2
-RPi.GPIO>=0.7.1
+# ── Sensors / Hardware ────────────────────────────────
+smbus2==0.4.3
+RPi.GPIO==0.7.1
 
-# Data storage
-influxdb-client>=3.4.0
+# ── Data storage ──────────────────────────────────────
+influxdb-client==1.41.0
 
-# Utilities
-pyserial>=3.5
-python-dotenv>=1.0.0
+# ── Utilities ─────────────────────────────────────────
+pyserial==3.5
+python-dotenv==1.0.1
+
+# ── Development (optional) ────────────────────────────
+# pytest>=8.0.0
+# ruff>=0.3.0
