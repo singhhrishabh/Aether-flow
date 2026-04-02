@@ -48,7 +48,6 @@ import csv             # Saves data to CSV spreadsheet files
 import time            # Time functions (sleep, timestamps)
 import os              # File and folder operations
 import sys             # System functions (exit, etc.)
-import threading       # Runs multiple tasks at the same time
 from datetime import datetime   # Date and time formatting
 from collections import deque   # A fast list with max size (sliding window)
 from typing import Any, Optional
@@ -66,7 +65,7 @@ except ImportError:
     print("       Install with: pip3 install numpy")
 
 try:
-    from influxdb_client import InfluxDBClient, Point, WritePrecision
+    from influxdb_client import InfluxDBClient, Point
     from influxdb_client.client.write_api import SYNCHRONOUS
     INFLUX_AVAILABLE = True
 except ImportError:
@@ -242,17 +241,17 @@ def setup_serial() -> bool:
         )
         time.sleep(2)          # Wait for ESP32 to reset after connection
         serial_conn.flushInput()  # Clear any stale data in the buffer
-        print(f"[SERIAL] ✅ Connected to ESP32!")
+        print("[SERIAL] ✅ Connected to ESP32!")
         return True
 
     except serial.SerialException as e:
         print(f"\n[ERROR] Could not open serial port: {e}")
-        print(f"\n  Possible fixes:")
-        print(f"  1. Check ESP32 is plugged in via USB")
-        print(f"  2. Try:  ls /dev/tty*   to find the right port")
-        print(f"  3. Edit SERIAL_PORT in this script to match")
-        print(f"  4. On Linux, run:  sudo usermod -a -G dialout $USER")
-        print(f"     (then log out and back in)")
+        print("\n  Possible fixes:")
+        print("  1. Check ESP32 is plugged in via USB")
+        print("  2. Try:  ls /dev/tty*   to find the right port")
+        print("  3. Edit SERIAL_PORT in this script to match")
+        print("  4. On Linux, run:  sudo usermod -a -G dialout $USER")
+        print("     (then log out and back in)")
         return False
 
 
@@ -298,7 +297,7 @@ def load_ai_model() -> bool:
 
     if not os.path.exists(MODEL_PATH):
         print(f"[AI] Model file not found at {MODEL_PATH}")
-        print(f"[AI] Running in observation mode — collecting training data")
+        print("[AI] Running in observation mode — collecting training data")
         return False
 
     try:
@@ -450,7 +449,7 @@ def save_to_influx(data, write_api):
             .tag("safe",             str(data.get("safe", 1)))
         )
         write_api.write(bucket=INFLUX_BUCKET, org=INFLUX_ORG, record=point)
-    except Exception as e:
+    except Exception:
         pass   # Dashboard errors are non-critical — don't crash
 
 
@@ -665,7 +664,7 @@ def main():
     model_loaded = load_ai_model()
     ai_active = AI_MODE and model_loaded
 
-    print(f"\n[START] Data collection started. Press Ctrl+C to stop.\n")
+    print("\n[START] Data collection started. Press Ctrl+C to stop.\n")
 
     reading_count = 0
 
@@ -803,7 +802,7 @@ def check_data_quality(csv_path: Optional[str] = None) -> None:
 
     # Temperature stats
     if "temp_c" in df.columns:
-        print(f"\n  Temperature stats:")
+        print("\n  Temperature stats:")
         print(f"    Mean:    {df['temp_c'].mean():.2f}°C")
         print(f"    Std dev: {df['temp_c'].std():.2f}°C")
         print(f"    Min/Max: {df['temp_c'].min():.1f}°C / {df['temp_c'].max():.1f}°C")
@@ -815,7 +814,7 @@ def check_data_quality(csv_path: Optional[str] = None) -> None:
         print("  (Some sensor reads failed — normal if < 1% of rows)")
 
     # AI readiness
-    print(f"\n  AI Training Readiness:")
+    print("\n  AI Training Readiness:")
     target_rows = 100_000   # ~14 hours of data at 2/sec
     progress = min(100, len(df) / target_rows * 100)
     bar = "█" * int(progress / 5) + "░" * (20 - int(progress / 5))

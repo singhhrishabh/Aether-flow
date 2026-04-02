@@ -40,29 +40,23 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 
+import importlib
+
 # ── Check dependencies ─────────────────────────────────────
 missing = []
-try:    import pandas as pd
-except: missing.append("pandas")
-try:    import numpy as np
-except: missing.append("numpy")
-try:
-    from sklearn.preprocessing import MinMaxScaler
-    from sklearn.model_selection import train_test_split
-except ImportError:
-    missing.append("scikit-learn")
-try:
-    import tensorflow as tf
-except ImportError:
-    missing.append("tensorflow")
+for _pkg_name, _import_name in [("pandas", "pandas"), ("numpy", "numpy"),
+                                  ("scikit-learn", "sklearn"), ("tensorflow", "tensorflow")]:
+    if importlib.util.find_spec(_import_name) is None:
+        missing.append(_pkg_name)
 
 if missing:
     print(f"[ERROR] Missing libraries: {', '.join(missing)}")
     print(f"Install with: pip3 install {' '.join(missing)}")
     sys.exit(1)
 
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler  # noqa: E402
+from sklearn.model_selection import train_test_split  # noqa: E402
+import tensorflow as tf  # noqa: E402
 
 
 # ============================================================
@@ -385,15 +379,15 @@ def main():
     print("\n" + "═"*55)
     print("  TRAINING COMPLETE!")
     print("═"*55)
-    print(f"\n  Next steps:")
+    print("\n  Next steps:")
     print(f"  1. Copy {tflite_path}")
-    print(f"     to your Raspberry Pi at:")
-    print(f"     ./aetherflow_data/model/aetherflow_model.tflite")
-    print(f"\n  2. In AetherFlow_DataLogger.py, set:")
-    print(f"     AI_MODE = True")
-    print(f"\n  3. Restart the data logger — it will now send")
-    print(f"     AI commands to the ESP32!")
-    print(f"\n  Watch for 'mode: AI' in the terminal output.")
+    print("     to your Raspberry Pi at:")
+    print("     ./aetherflow_data/model/aetherflow_model.tflite")
+    print("\n  2. In AetherFlow_DataLogger.py, set:")
+    print("     AI_MODE = True")
+    print("\n  3. Restart the data logger — it will now send")
+    print("     AI commands to the ESP32!")
+    print("\n  Watch for 'mode: AI' in the terminal output.")
     print("═"*55)
 
 
