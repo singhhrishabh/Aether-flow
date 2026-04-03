@@ -287,16 +287,6 @@ aether-flow/
 
 ---
 
-## Markets Addressed
-
-- **EV battery thermal management** — $58.9 B by 2035 (16.3 % CAGR)
-- **Data-centre liquid cooling** — $38.4 B by 2033 (28.7 % CAGR)
-- **AI-driven BMS** — $18.5 B by 2032 (20.6 % CAGR)
-- **Edge AI / Industrial IoT** — $18 B by 2028
-- **5G base stations** — $15 B addressable
-
----
-
 ## Getting Started
 
 ### Prerequisites
